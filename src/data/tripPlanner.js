@@ -34,7 +34,9 @@ Ejemplo: ["¿Viajas en pareja o con amigos?", "¿Prefieres relax o ruta intensa?
     });
     if (!response.ok) throw new Error("API Error");
     const data = await response.json();
-    return JSON.parse(data.candidates[0].content.parts[0].text);
+    let text = data.candidates[0].content.parts[0].text;
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(text);
   } catch (err) {
     console.error(err);
     return [
@@ -119,7 +121,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
     });
     if (!response.ok) throw new Error("API Error");
     const data = await response.json();
-    return JSON.parse(data.candidates[0].content.parts[0].text);
+    let text = data.candidates[0].content.parts[0].text;
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(text);
   } catch (error) {
     console.error("Error generating final plan:", error);
     return buildGenericFallback(destination, days);
