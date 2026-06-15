@@ -1,27 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './SocialFeed.css';
 import { testimonials, users, destinations } from '../data/mockData';
+import { db } from '../lib/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 function PostCard({ testimonial }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showTips, setShowTips] = useState(false);
 
-  const author = users.find(u => u.id === testimonial.userId);
-  const dest   = destinations.find(d => d.id === testimonial.destination);
-  const stars  = '★'.repeat(testimonial.rating) + '☆'.repeat(5 - testimonial.rating);
+  // Fallback to mockData if author/dest info is not directly on the object
+  const authorName = testimonial.user?.name || (users.find(u => u.id === testimonial.userId)?.name);
+  const authorAvatar = testimonial.user?.avatar || (users.find(u => u.id === testimonial.userId)?.avatar);
+  const authorLocation = testimonial.user?.location || (users.find(u => u.id === testimonial.userId)?.location) || 'Mundo';
+  
+  const dest = destinations.find(d => d.id === (testimonial.destId || testimonial.destination));
+  const stars  = '★'.repeat(testimonial.rating || 5) + '☆'.repeat(5 - (testimonial.rating || 5));
+
+  // Format date
+  const dateStr = testimonial.createdAt?.toDate 
+    ? testimonial.createdAt.toDate().toLocaleDateString() 
+    : (testimonial.date || 'Reciente');
 
   return (
     <article className="post glass">
       {/* ── Author row ── */}
       <div className="post__header">
-        <img src={author?.avatar} alt={author?.name} className="post__avatar" />
+        <img src={authorAvatar} alt={authorName} className="post__avatar" />
         <div className="post__author">
           <div className="post__author-row">
-            <span className="post__name">{author?.name}</span>
-            <span className="tag tag-orange post__dest">{dest?.emoji} {dest?.name}</span>
+            <span className="post__name">{authorName}</span>
+            <span className="tag tag-orange post__dest">{dest?.emoji} {dest?.name || testimonial.destinationName}</span>
           </div>
-          <span className="post__meta">📍 {author?.location} · {testimonial.date}</span>
+          <span className="post__meta">📍 {authorLocation} · {dateStr}</span>
         </div>
         <div className="post__stars">{stars}</div>
       </div>
@@ -96,12 +107,33 @@ const FILTERS = [
   { label: '⛵ Capri',    val: 'capri'    },
 ];
 
-export default function SocialFeed({ onComposeClick }) {
+export default function SocialFeed({ onComposeClick, user }) {
   const [filter, setFilter] = useState('all');
+  const [dbPosts, setDbPosts] = useState([]);
 
-  const posts = filter === 'all'
-    ? testimonials
-    : testimonials.filter(t => t.destination === filter);
+  useEffect(() => {
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setDbPosts(postsData);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Combine DB posts and mock posts for now, or just use DB if it has items.
+  // In a real app, you'd migrate all mock data to the DB.
+  // Here we'll just show DB posts first, then mock ones if filter matches.
+  
+  // Actually, let's just use the DB posts and if empty, we fall back to nothing 
+  // or we can hardcode the mockData below. We will merge them for display purposes.
+  const allPosts = [...dbPosts, ...testimonials];
+
+  const filteredPosts = filter === 'all'
+    ? allPosts
+    : allPosts.filter(t => (t.destId || t.destination) === filter);
 
   return (
     <section className="sfeed" id="explore">
@@ -149,24 +181,24 @@ export default function SocialFeed({ onComposeClick }) {
           <div className="sfeed__feed-header">
             <h2 className="heading-lg">Feed de experiencias</h2>
             <span className="sfeed__count body-sm" style={{color:'var(--c-text-muted)'}}>
-              {posts.length} publicaciones
+              {filteredPosts.length} publicaciones
             </span>
           </div>
 
           <div className="sfeed__compose glass">
             <img
-              src="https://randomuser.me/api/portraits/men/1.jpg"
+              src={user?.photoURL || "https://ui-avatars.com/api/?name=Viajero"}
               alt="Tú"
               className="sfeed__compose-avatar"
             />
-            <button className="sfeed__compose-input" id="compose-btn" onClick={onComposeClick}>
+            <button className="sfeed__compose-input" id="compose-btn" onClick={() => user ? onComposeClick() : alert("Inicia sesión para publicar")}>
               ¿Dónde has estado? Comparte tu experiencia...
             </button>
-            <button className="btn btn-primary sfeed__compose-post" id="compose-post" onClick={onComposeClick}>Publicar</button>
+            <button className="btn btn-primary sfeed__compose-post" id="compose-post" onClick={() => user ? onComposeClick() : alert("Inicia sesión para publicar")}>Publicar</button>
           </div>
 
           <div className="sfeed__posts">
-            {posts.map((t, i) => (
+            {filteredPosts.map((t, i) => (
               <div key={t.id} className="anim-fade-up" style={{ animationDelay: `${i * 0.06}s` }}>
                 <PostCard testimonial={t} />
               </div>

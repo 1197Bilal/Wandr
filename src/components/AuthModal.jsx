@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import './AuthModal.css';
+import { auth, googleProvider } from '../lib/firebase';
+import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 const TABS = ['Entrar', 'Crear cuenta'];
 
-export default function AuthModal({ onClose, onAuth }) {
+export default function AuthModal({ onClose }) {
   const [tab, setTab]         = useState(0);
   const [email, setEmail]     = useState('');
   const [password, setPass]   = useState('');
@@ -11,19 +13,39 @@ export default function AuthModal({ onClose, onAuth }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone]       = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      if (tab === 0) {
+        // Log in
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        // Sign up
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, {
+          displayName: name || email.split('@')[0]
+        });
+      }
       setDone(true);
-      setTimeout(() => { onAuth({ name: name || email.split('@')[0], email }); onClose(); }, 1200);
-    }, 1000);
+      setTimeout(() => { onClose(); }, 1200);
+    } catch (error) {
+      console.error('Auth error:', error);
+      alert(error.message); // Simple error handling for now
+      setLoading(false);
+    }
   };
 
-  const handleGoogle = () => {
+  const handleGoogle = async () => {
     setLoading(true);
-    setTimeout(() => { onAuth({ name: 'Viajero', email: 'viajero@gmail.com' }); onClose(); }, 800);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      onClose();
+    } catch (error) {
+      console.error('Google Auth error:', error);
+      alert(error.message);
+      setLoading(false);
+    }
   };
 
   return (

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import './ComposeModal.css';
 import { destinations } from '../data/mockData';
+import { db } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-export default function ComposeModal({ onClose }) {
+export default function ComposeModal({ onClose, user }) {
   const [step, setStep]         = useState(1); // 1=dest, 2=write, 3=done
   const [destId, setDestId]     = useState('');
   const [title, setTitle]       = useState('');
@@ -15,9 +17,33 @@ export default function ComposeModal({ onClose }) {
   const updateTip = (i, val) => setTips(t => t.map((x, j) => j === i ? val : x));
   const removeTip = (i) => setTips(t => t.filter((_, j) => j !== i));
 
-  const handleSubmit = () => {
-    if (!title.trim() || !body.trim()) return;
-    setStep(3);
+  const handleSubmit = async () => {
+    if (!title.trim() || !body.trim() || !user) return;
+    
+    try {
+      const selectedDest = destinations.find(d => d.id === destId);
+      
+      await addDoc(collection(db, 'posts'), {
+        user: {
+          name: user.name,
+          avatar: user.photoURL,
+          uid: user.uid
+        },
+        destId,
+        destinationName: selectedDest ? selectedDest.name : '',
+        title,
+        body,
+        tips: tips.filter(t => t.trim() !== ''),
+        rating,
+        likes: 0,
+        createdAt: serverTimestamp()
+      });
+      
+      setStep(3);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      alert("Hubo un error al publicar.");
+    }
   };
 
   return (
@@ -27,9 +53,9 @@ export default function ComposeModal({ onClose }) {
         {/* Header */}
         <div className="cm-header">
           <div className="cm-header__left">
-            <img src="https://randomuser.me/api/portraits/men/1.jpg" alt="Tú" className="cm-header__avatar" />
+            <img src={user?.photoURL || "https://ui-avatars.com/api/?name=Viajero"} alt="Tú" className="cm-header__avatar" />
             <div>
-              <span className="cm-header__name">Tú</span>
+              <span className="cm-header__name">{user ? user.name : 'Tú'}</span>
               <span className="cm-header__label label">Compartir experiencia</span>
             </div>
           </div>

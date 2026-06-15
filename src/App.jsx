@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -9,23 +9,54 @@ import CommunitySection from './components/CommunitySection';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import ComposeModal from './components/ComposeModal';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser({
+          uid: currentUser.uid,
+          name: currentUser.displayName || currentUser.email.split('@')[0],
+          email: currentUser.email,
+          photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName || currentUser.email}&background=random`
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  if (loading) return null;
 
   return (
     <div className="app">
       <Navbar 
         user={user} 
         onLoginClick={() => setShowAuth(true)} 
-        onLogoutClick={() => setUser(null)}
+        onLogoutClick={handleLogout}
       />
       
       <main>
         <Hero />
-        <SocialFeed onComposeClick={() => setShowCompose(true)} />
+        <SocialFeed onComposeClick={() => setShowCompose(true)} user={user} />
         <MapSection />
         <DestinationsSection />
         <CommunitySection />
@@ -43,6 +74,7 @@ export default function App() {
       
       {showCompose && (
         <ComposeModal 
+          user={user}
           onClose={() => setShowCompose(false)} 
         />
       )}
