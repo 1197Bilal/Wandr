@@ -25,7 +25,6 @@ export default function PricingSection() {
             <li>✓ Guardar posts y rutas</li>
             <li>✓ 3 Itinerarios IA por mes</li>
             <li>✗ Mapas offline</li>
-            <li>✗ Vender tus rutas</li>
           </ul>
           
           <button className="btn pricing__btn">Empezar Gratis</button>
@@ -51,27 +50,6 @@ export default function PricingSection() {
           </ul>
           
           <button className="btn btn-primary pricing__btn">Pruébalo 7 días gratis</button>
-        </div>
-
-        {/* Tier 3: Creator */}
-        <div className="pricing__card glass anim-fade-up" style={{ animationDelay: '0.3s' }}>
-          <h3 className="pricing__tier-name">Wandr Creator</h3>
-          <div className="pricing__price">
-            <span className="pricing__currency">€</span>
-            <span className="pricing__amount">9,99</span>
-            <span className="pricing__period">/mes</span>
-          </div>
-          <p className="pricing__tier-desc">Monetiza tus viajes vendiendo tus propios itinerarios.</p>
-          
-          <ul className="pricing__features">
-            <li>✓ Todo lo de PRO</li>
-            <li>✓ Crea y vende itinerarios</li>
-            <li>✓ <strong>Te quedas el 100% de la venta</strong></li>
-            <li>✓ Analíticas de audiencia</li>
-            <li>✓ Soporte prioritario 24/7</li>
-          </ul>
-          
-          <button className="btn pricing__btn">Hazte Creador</button>
         </div>
 
       </div>

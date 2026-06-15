@@ -102,9 +102,9 @@ function PostCard({ testimonial }) {
 
 const FILTERS = [
   { label: 'Todo 🌍',      val: 'all'      },
-  { label: '🏖️ Cerdeña',  val: 'sardinia' },
-  { label: '🍕 Nápoles',  val: 'naples'   },
-  { label: '⛵ Capri',    val: 'capri'    },
+  { label: '🏝️ Playa',     val: 'beach'    },
+  { label: '⛰️ Montaña',   val: 'mountain' },
+  { label: '🏙️ Ciudad',    val: 'city'     },
 ];
 
 export default function SocialFeed({ onComposeClick, user }) {
@@ -161,11 +161,11 @@ export default function SocialFeed({ onComposeClick, user }) {
             <span className="label sfeed__sidebar-label">🔥 Trending tips</span>
             <ul className="sfeed__trend-list">
               {[
-                { emoji:'🍕', tip:'Da Michele: solo margherita' },
-                { emoji:'⛵', tip:'Barco 7am a Capri' },
-                { emoji:'🐘', tip:'Santuario elefantes Chiang Mai' },
-                { emoji:'🌅', tip:'Fushimi Inari al amanecer' },
-                { emoji:'🏖️', tip:'Alquila barco en Cala Gonone' },
+                { emoji:'🗺️', tip:'Usa Google Maps offline' },
+                { emoji:'🎒', tip:'Viaja con equipaje ligero' },
+                { emoji:'🍽️', tip:'Come donde comen los locales' },
+                { emoji:'🚊', tip:'El tren es más barato si reservas 1 mes antes' },
+                { emoji:'📸', tip:'Levántate temprano para fotos sin gente' },
               ].map((t, i) => (
                 <li key={i} className="sfeed__trend-item">
                   <span>{t.emoji}</span>

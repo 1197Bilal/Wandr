@@ -4,16 +4,13 @@ import { destinations, users } from '../data/mockData';
 
 // Approximate world-map % positions for each destination
 const PINS = [
-  { id: 'sardinia', name: 'Cerdeña',      emoji: '🏖️', x: 50.5, y: 35.5, travelers: 142 },
-  { id: 'naples',   name: 'Nápoles',      emoji: '🍕', x: 51.8, y: 37.2, travelers: 89  },
-  { id: 'capri',    name: 'Capri',        emoji: '⛵', x: 51.9, y: 38.0, travelers: 67  },
-  { id: 'amalfi',   name: 'Costa Amalfitana', emoji: '🌊', x: 52.0, y: 37.8, travelers: 198 },
-  { id: 'rome',     name: 'Roma',         emoji: '🏛️', x: 51.6, y: 36.5, travelers: 312 },
-  { id: 'thailand', name: 'Tailandia',    emoji: '🇹🇭', x: 76.2, y: 52.5, travelers: 421 },
-  { id: 'japan',    name: 'Japón',        emoji: '🇯🇵', x: 83.5, y: 37.0, travelers: 289 },
-  { id: 'portugal', name: 'Lisboa',       emoji: '🇵🇹', x: 44.2, y: 37.8, travelers: 178 },
-  { id: 'greece',   name: 'Grecia',       emoji: '🏛️', x: 54.5, y: 38.5, travelers: 203 },
-  { id: 'morocco',  name: 'Marruecos',    emoji: '🕌', x: 46.5, y: 43.0, travelers: 134 },
+  { id: 'beach',    name: 'Bali',          emoji: '🏝️', x: 78.5, y: 55.5, travelers: 142 },
+  { id: 'city',     name: 'Tokio',         emoji: '🏙️', x: 83.5, y: 37.0, travelers: 312 },
+  { id: 'mountain', name: 'Patagonia',     emoji: '⛰️', x: 28.0, y: 80.0, travelers: 89  },
+  { id: 'beach_2',  name: 'Tulum',         emoji: '🌊', x: 22.0, y: 45.0, travelers: 198 },
+  { id: 'city_2',   name: 'Nueva York',    emoji: '🗽', x: 25.5, y: 33.0, travelers: 450 },
+  { id: 'city_3',   name: 'París',         emoji: '🥐', x: 48.0, y: 32.0, travelers: 210 },
+  { id: 'mountain_2',name: 'Alpes Suizos', emoji: '⛷️', x: 49.5, y: 33.5, travelers: 134 },
 ];
 
 export default function MapSection() {
