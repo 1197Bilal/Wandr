@@ -67,7 +67,7 @@ export default function PricingSection() {
             <li>✓ Todo lo de Wandr Plus</li>
             <li>✓ <strong>Concierge humano 24/7</strong></li>
             <li>✓ Gestión de reservas VIP</li>
-            <li>✓ Acceso a salas VIP en aeropuertos</li>
+            <li>✓ <strong>Soporte prioritario por WhatsApp</strong></li>
             <li>✓ Seguros de cancelación incluidos</li>
           </ul>
           
