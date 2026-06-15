@@ -25,8 +25,6 @@
   background-size: 32px 32px;
   background-position: center;
   opacity: 0.4;
-  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 10%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 10%, transparent 70%);
 }
 
 .hero-corner__glow {

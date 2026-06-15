@@ -8,6 +8,7 @@ export default function Hero() {
   const [plan, setPlan]       = useState(null);
   const [loading, setLoading] = useState(false);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
   // Rotating placeholder for dynamic feel
   useEffect(() => {
@@ -30,12 +31,22 @@ export default function Hero() {
     if (e.key === 'Enter') handleSearch();
   };
 
+  const handleMouseMove = (e) => {
+    // Calculate percentage position of mouse across screen
+    const x = (e.clientX / window.innerWidth) * 100;
+    const y = (e.clientY / window.innerHeight) * 100;
+    setMousePos({ x, y });
+  };
+
   return (
     <>
-      <section className="hero-corner" id="hero">
+      <section className="hero-corner" id="hero" onMouseMove={handleMouseMove}>
         {/* Dynamic Map Background */}
         <div className="hero-corner__bg">
-          <div className="hero-corner__map-pattern"></div>
+          <div className="hero-corner__map-pattern" style={{
+            maskImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(0,0,0,1) 0%, transparent 60%)`,
+            WebkitMaskImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(0,0,0,1) 0%, transparent 60%)`
+          }}></div>
           <div className="hero-corner__glow hero-corner__glow--1"></div>
           <div className="hero-corner__glow hero-corner__glow--2"></div>
         </div>
@@ -47,8 +58,8 @@ export default function Hero() {
           </div>
 
           <h1 className="hero-corner__title">
-            El mundo es grande.<br/>
-            Explóralo mejor.
+            Conecta con el mundo.<br/>
+            <em className="gradient-text">Conecta con su gente.</em>
           </h1>
 
           <p className="hero-corner__sub">
