@@ -37,12 +37,18 @@ export default function Hero() {
   const goStep2 = () => { if (destination.trim()) setStep(2); };
   const goStep3 = () => setStep(3);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setStep(4);
-    setTimeout(() => {
-      setPlan(generateTripPlan(destination, parseInt(days), companions, vibe));
-      setStep(1); setDestination('');
-    }, 2200);
+    try {
+      // The API call takes some time, so the loading UI will show naturally.
+      const p = await generateTripPlan(destination, parseInt(days), companions, vibe);
+      setPlan(p);
+      setStep(1); 
+      setDestination('');
+    } catch (error) {
+      console.error("Failed to generate plan:", error);
+      setStep(1); // Go back if error
+    }
   };
 
   return (
