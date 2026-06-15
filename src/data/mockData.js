@@ -34,7 +34,7 @@ export const destinations = [
     avgRating: 4.9,
   },
   {
-    id: 'beach',
+    id: 'tulum',
     name: 'Tulum, México',
     country: 'México',
     emoji: '🌊',
@@ -45,7 +45,7 @@ export const destinations = [
     avgRating: 4.7,
   },
   {
-    id: 'city',
+    id: 'newyork',
     name: 'Nueva York, USA',
     country: 'USA',
     emoji: '🗽',
