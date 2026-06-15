@@ -1,48 +1,48 @@
 import { useState } from 'react';
 import './Hero.css';
-import { generateTripPlan, SEARCH_EXAMPLES } from '../data/tripPlanner';
+import { generateTripPlan, SEARCH_EXAMPLES, VIBES } from '../data/tripPlanner';
 import TripPlan from './TripPlan';
-
-const COMPANIONS = [
-  { val: 'solo', label: 'Solo/a', emoji: '🧳' },
-  { val: 'pareja', label: 'Pareja', emoji: '❤️' },
-  { val: 'amigos', label: 'Amigos', emoji: '🎉' },
-  { val: 'familia', label: 'Familia', emoji: '👨‍👩‍👧' },
-];
 
 export default function Hero() {
   const [plan, setPlan] = useState(null);
-  const [step, setStep] = useState(1); // 1=dest, 2=details, 3=loading
+  const [step, setStep] = useState(1);
   const [destination, setDestination] = useState('');
   const [days, setDays] = useState('7');
   const [companions, setCompanions] = useState('pareja');
+  const [vibe, setVibe] = useState('cultura');
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
-  // Rotate placeholder
+  const COMPANIONS = [
+    { val: 'solo', label: 'Solo/a', emoji: '🧳' },
+    { val: 'pareja', label: 'Pareja', emoji: '❤️' },
+    { val: 'amigos', label: 'Amigos', emoji: '🎉' },
+    { val: 'familia', label: 'Familia', emoji: '👨‍👩‍👧' },
+  ];
+
   useState(() => {
-    const interval = setInterval(() => setPlaceholderIdx(p => (p + 1) % SEARCH_EXAMPLES.length), 3000);
-    return () => clearInterval(interval);
+    const t = setInterval(() => setPlaceholderIdx(p => (p + 1) % SEARCH_EXAMPLES.length), 3000);
+    return () => clearInterval(t);
   }, []);
 
   const handleMouseMove = (e) => {
+    const el = e.currentTarget.querySelector('.hero-corner__map-pattern');
+    if (!el) return;
     const x = (e.clientX / window.innerWidth) * 100;
     const y = (e.clientY / window.innerHeight) * 100;
-    e.currentTarget.querySelector('.hero-corner__map-pattern').style.maskImage =
-      `radial-gradient(circle at ${x}% ${y}%, rgba(0,0,0,1) 0%, transparent 60%)`;
-    e.currentTarget.querySelector('.hero-corner__map-pattern').style.webkitMaskImage =
-      `radial-gradient(circle at ${x}% ${y}%, rgba(0,0,0,1) 0%, transparent 60%)`;
+    const grad = `radial-gradient(circle at ${x}% ${y}%, rgba(0,0,0,1) 0%, transparent 60%)`;
+    el.style.maskImage = grad;
+    el.style.webkitMaskImage = grad;
   };
 
-  const goToStep2 = () => { if (destination.trim()) setStep(2); };
-  const handleKey = (e) => { if (e.key === 'Enter') goToStep2(); };
+  const goStep2 = () => { if (destination.trim()) setStep(2); };
+  const goStep3 = () => setStep(3);
 
   const handleGenerate = () => {
-    setStep(3);
+    setStep(4);
     setTimeout(() => {
-      setPlan(generateTripPlan(destination, parseInt(days), companions));
-      setStep(1);
-      setDestination('');
-    }, 2000);
+      setPlan(generateTripPlan(destination, parseInt(days), companions, vibe));
+      setStep(1); setDestination('');
+    }, 2200);
   };
 
   return (
@@ -59,65 +59,70 @@ export default function Hero() {
             <span className="hero-corner__badge-dot"></span>
             El motor de viajes impulsado por comunidad
           </div>
-
           <h1 className="hero-corner__title">
             Conecta con el mundo.<br/>
             <em className="gradient-text">Conecta con su gente.</em>
           </h1>
-
           <p className="hero-corner__sub">
-            Genera itinerarios hiper-optimizados en segundos. Basado en datos de miles de viajeros reales.
+            Dinos a dónde vas y cómo quieres viajar. Te armamos el plan perfecto, hora a hora.
           </p>
 
-          {/* ── Step 1: Destination ── */}
+          {/* STEP 1: Destination */}
           {step === 1 && (
             <div className="hero-corner__search-wrap anim-fade-up">
               <div className="hero-corner__search">
                 <div className="hero-corner__search-icon">⌘</div>
-                <input
-                  id="hero-search"
-                  type="text"
-                  className="hero-corner__search-input"
+                <input id="hero-search" type="text" className="hero-corner__search-input"
                   placeholder={`Prueba con "${SEARCH_EXAMPLES[placeholderIdx]}"`}
-                  value={destination}
-                  onChange={e => setDestination(e.target.value)}
-                  onKeyDown={handleKey}
-                  autoComplete="off"
+                  value={destination} onChange={e => setDestination(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && goStep2()} autoComplete="off"
                 />
-                <button className="hero-corner__search-btn" onClick={goToStep2} disabled={!destination.trim()}>
+                <button className="hero-corner__search-btn" onClick={goStep2} disabled={!destination.trim()}>
                   Siguiente →
                 </button>
               </div>
               <div className="hero-corner__examples">
                 <span className="hero-corner__ex-label">Trending:</span>
                 {SEARCH_EXAMPLES.slice(0,3).map(ex => (
-                  <button key={ex} className="hero-corner__ex-chip" onClick={() => setDestination(ex)}>
-                    {ex}
-                  </button>
+                  <button key={ex} className="hero-corner__ex-chip" onClick={() => setDestination(ex)}>{ex}</button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* ── Step 2: Details ── */}
+          {/* STEP 2: Vibe */}
           {step === 2 && (
             <div className="hero-step2 anim-fade-up">
-              <div className="hero-step2__back">
-                <button className="hero-step2__back-btn" onClick={() => setStep(1)}>← {destination}</button>
+              <button className="hero-step2__back-btn" onClick={() => setStep(1)}>← {destination}</button>
+              <div className="hero-step2__field" style={{marginTop: 24}}>
+                <label className="hero-step2__label">✨ ¿Qué tipo de viaje quieres?</label>
+                <div className="hero-step2__companions" style={{justifyContent:'center'}}>
+                  {VIBES.map(v => (
+                    <button key={v.val} className={`hero-step2__companion-btn ${vibe === v.val ? 'active' : ''}`} onClick={() => setVibe(v.val)}>
+                      {v.emoji} {v.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <button className="hero-corner__search-btn" style={{marginTop: 32, width:'100%', padding:'16px', borderRadius:'12px', fontSize:'1rem'}} onClick={goStep3}>
+                Siguiente →
+              </button>
+            </div>
+          )}
 
-              <div className="hero-step2__row">
+          {/* STEP 3: Days & Companions */}
+          {step === 3 && (
+            <div className="hero-step2 anim-fade-up">
+              <button className="hero-step2__back-btn" onClick={() => setStep(2)}>← {VIBES.find(v2=>v2.val===vibe)?.emoji} {destination}</button>
+              <div className="hero-step2__row" style={{marginTop: 24}}>
                 <div className="hero-step2__field">
                   <label className="hero-step2__label">📅 ¿Cuántos días?</label>
                   <div className="hero-step2__days">
                     {['5','7','10','14','21'].map(d => (
-                      <button key={d} className={`hero-step2__day-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>
-                        {d}d
-                      </button>
+                      <button key={d} className={`hero-step2__day-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>{d}d</button>
                     ))}
                   </div>
                 </div>
-
                 <div className="hero-step2__field">
                   <label className="hero-step2__label">👥 ¿Con quién viajas?</label>
                   <div className="hero-step2__companions">
@@ -129,27 +134,24 @@ export default function Hero() {
                   </div>
                 </div>
               </div>
-
-              <button className="hero-corner__search-btn hero-step2__generate" onClick={handleGenerate}>
-                ✦ Generar mi plan personalizado
+              <button className="hero-step2__generate" onClick={handleGenerate}>
+                ✦ Generar mi plan perfecto
               </button>
             </div>
           )}
 
-          {/* ── Step 3: Loading ── */}
-          {step === 3 && (
+          {/* STEP 4: Loading */}
+          {step === 4 && (
             <div className="hero-loading anim-fade-up">
               <div className="hero-loading__spinner"></div>
-              <p className="hero-loading__text">Analizando {destination} con datos de 12.000 viajeros...</p>
+              <p className="hero-loading__text">Construyendo tu plan {VIBES.find(v2=>v2.val===vibe)?.emoji} en {destination}...</p>
               <div className="hero-loading__bar"><div className="hero-loading__fill"></div></div>
             </div>
           )}
         </div>
 
         <div className="hero-corner__scroll">
-          <div className="hero-corner__scroll-mouse">
-            <div className="hero-corner__scroll-wheel"></div>
-          </div>
+          <div className="hero-corner__scroll-mouse"><div className="hero-corner__scroll-wheel"></div></div>
         </div>
       </section>
 
