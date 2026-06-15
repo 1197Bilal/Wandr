@@ -1,100 +1,105 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import './TripPlan.css';
 
 export default function TripPlan({ plan, onClose }) {
-  const [activeDay, setActiveDay] = useState(0);
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => document.body.style.overflow = 'auto';
+  }, []);
 
-  if (!plan) return null;
+  const handleProUpsell = () => {
+    alert("Función exclusiva para Wandr PRO. Suscríbete para descargar tus mapas e itinerarios en PDF.");
+  };
 
   return (
     <div className="tp-overlay" onClick={onClose}>
-      <div className="tp-modal glass-strong" onClick={e => e.stopPropagation()}>
-
-        {/* Hero image */}
-        <div className="tp-hero">
-          <img src={plan.cover} alt={plan.destination} className="tp-hero__img" />
-          <div className="tp-hero__overlay" />
-          <button className="tp-close" onClick={onClose} id="trip-plan-close" aria-label="Cerrar">✕</button>
-          <div className="tp-hero__content">
-            <div className="tp-hero__flag">{plan.flag}</div>
-            <h2 className="tp-hero__title display-lg">{plan.destination}</h2>
-            <div className="tp-hero__meta">
-              <span className="tag tag-orange">🗓 {plan.days} días</span>
-              <span className="tag tag-teal">💸 {plan.budget}</span>
-              <span className="tag tag-gold">☀️ Mejor época: {plan.bestTime}</span>
-            </div>
-            <div className="tp-hero__vibes">
-              {plan.vibe.map(v => (
-                <span key={v} className="tp-vibe">{v}</span>
-              ))}
+      <div className="tp-modal" onClick={e => e.stopPropagation()}>
+        
+        {/* Cover Image & Header */}
+        <div className="tp-cover" style={{ backgroundImage: `url(${plan.cover})` }}>
+          <div className="tp-cover__overlay">
+            <button className="tp-close" onClick={onClose}>✕</button>
+            <div className="tp-cover__content">
+              <span className="tp-flag">{plan.flag}</span>
+              <h2 className="tp-title">
+                {plan.days} días en {plan.destination}
+              </h2>
+              <div className="tp-vibes">
+                {plan.vibe.map(v => <span key={v} className="tp-vibe-tag">{v}</span>)}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Itinerary */}
-        <div className="tp-body">
-          <div className="tp-section-label label">📍 Itinerario sugerido</div>
+        {/* Action Bar (PRO Upsell) */}
+        <div className="tp-action-bar">
+          <div className="tp-action-info">
+            <span>✨ Generado por IA usando experiencias de 1.200 viajeros</span>
+          </div>
+          <button className="btn btn-primary tp-btn-download" onClick={handleProUpsell}>
+            Descargar PDF Offline <span className="tp-pro-badge">PRO</span>
+          </button>
+        </div>
 
-          {/* Day selector */}
-          <div className="tp-days">
-            {plan.itinerary.map((item, i) => (
-              <button
-                key={i}
-                className={`tp-day-btn ${activeDay === i ? 'tp-day-btn--active' : ''}`}
-                onClick={() => setActiveDay(i)}
-                id={`day-btn-${i}`}
-              >
-                <span className="tp-day-emoji">{item.emoji}</span>
-                <span className="tp-day-place">{item.place}</span>
-                <span className="tp-day-num">Día {item.day}</span>
-              </button>
+        <div className="tp-body">
+          
+          {/* Quick Stats Grid */}
+          <div className="tp-stats-grid">
+            <div className="tp-stat-card glass-strong">
+              <span className="tp-stat-icon">🌤️</span>
+              <div className="tp-stat-info">
+                <span className="tp-stat-label">Clima ({plan.bestTime})</span>
+                <span className="tp-stat-val">{plan.weather.temp} - {plan.weather.text}</span>
+              </div>
+            </div>
+            
+            <div className="tp-stat-card glass-strong">
+              <span className="tp-stat-icon">💰</span>
+              <div className="tp-stat-info">
+                <span className="tp-stat-label">Presupuesto Medio</span>
+                <span className="tp-stat-val">{plan.budget.total}</span>
+                <div className="tp-budget-breakdown">
+                  <span>✈️ {plan.budget.flights}</span>
+                  <span>🏨 {plan.budget.hotel}</span>
+                  <span>🍔 {plan.budget.daily}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="tp-section-title">El Itinerario</h3>
+          
+          {/* Timeline Itinerary */}
+          <div className="tp-timeline">
+            {plan.itinerary.map((step, idx) => (
+              <div key={idx} className="tp-step">
+                <div className="tp-step__indicator">
+                  <div className="tp-step__dot">{step.emoji}</div>
+                  {idx !== plan.itinerary.length - 1 && <div className="tp-step__line" />}
+                </div>
+                <div className="tp-step__content glass-strong">
+                  <div className="tp-step__header">
+                    <span className="tp-step__day">Día {step.day}</span>
+                    <h4 className="tp-step__place">{step.place}</h4>
+                  </div>
+                  <p className="tp-step__highlight">{step.highlight}</p>
+                  
+                  <div className="tp-step__tip-box">
+                    <span className="tp-step__tip-label">💡 Tip de la comunidad:</span>
+                    <p className="tp-step__tip-text">"{step.tip}"</p>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
 
-          {/* Active day detail */}
-          <div className="tp-detail glass">
-            <div className="tp-detail__header">
-              <span className="tp-detail__emoji">{plan.itinerary[activeDay].emoji}</span>
-              <div>
-                <h3 className="tp-detail__place">{plan.itinerary[activeDay].place}</h3>
-                <span className="label">Día {plan.itinerary[activeDay].day}</span>
-              </div>
-            </div>
-            <p className="tp-detail__highlight">{plan.itinerary[activeDay].highlight}</p>
-            <div className="tp-detail__tip">
-              <span className="tp-detail__tip-icon">💡</span>
-              <span>{plan.itinerary[activeDay].tip}</span>
-            </div>
+          {/* Social Proof */}
+          <div className="tp-social-proof">
+            <h3 className="tp-section-title">¿Por qué este plan?</h3>
+            <p>Este itinerario ha sido sintetizado a partir de las rutas mejor valoradas por la comunidad de Wandr en el último año. Está optimizado para maximizar el tiempo y minimizar los costes turísticos inflados.</p>
           </div>
 
-          {/* CTA */}
-          <div className="tp-actions">
-            <button className="btn btn-primary tp-save" id="trip-plan-save">
-              ✦ Guardar este plan
-            </button>
-            <button className="btn btn-ghost tp-share" id="trip-plan-share">
-              🔗 Compartir
-            </button>
-            <button className="btn btn-ghost tp-edit" id="trip-plan-edit">
-              ✏️ Personalizar
-            </button>
-          </div>
-
-          {/* Who went */}
-          <div className="tp-community">
-            <span className="label">👥 Viajeros que hicieron esta ruta</span>
-            <div className="tp-community__avatars">
-              {[
-                'https://randomuser.me/api/portraits/women/44.jpg',
-                'https://randomuser.me/api/portraits/men/32.jpg',
-                'https://randomuser.me/api/portraits/women/68.jpg',
-                'https://randomuser.me/api/portraits/men/76.jpg',
-              ].map((src, i) => (
-                <img key={i} src={src} alt="traveler" className="tp-community__avatar" style={{ zIndex: 4 - i }} />
-              ))}
-              <span className="tp-community__count">+234 más</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

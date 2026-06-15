@@ -6,6 +6,7 @@ import SocialFeed from './components/SocialFeed';
 import MapSection from './components/MapSection';
 import DestinationsSection from './components/DestinationsSection';
 import CommunitySection from './components/CommunitySection';
+import PricingSection from './components/PricingSection';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import ComposeModal from './components/ComposeModal';
@@ -60,6 +61,7 @@ export default function App() {
         <MapSection />
         <DestinationsSection />
         <CommunitySection />
+        <PricingSection />
       </main>
       
       <Footer />
