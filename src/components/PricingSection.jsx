@@ -12,19 +12,20 @@ export default function PricingSection() {
         
         {/* Tier 1: Free */}
         <div className="pricing__card glass anim-fade-up" style={{ animationDelay: '0.1s' }}>
-          <h3 className="pricing__tier-name">Wandr Free</h3>
+          <h3 className="pricing__tier-name">Wandr Basic</h3>
           <div className="pricing__price">
             <span className="pricing__currency">€</span>
             <span className="pricing__amount">0</span>
             <span className="pricing__period">/mes</span>
           </div>
-          <p className="pricing__tier-desc">Para viajeros ocasionales que buscan inspiración.</p>
+          <p className="pricing__tier-desc">Acceso básico para ojear la comunidad.</p>
           
           <ul className="pricing__features">
-            <li>✓ Acceso a toda la comunidad</li>
-            <li>✓ Guardar posts y rutas</li>
-            <li>✓ 3 Itinerarios IA por mes</li>
+            <li>✓ Ver posts de la comunidad</li>
+            <li>✗ Guardar rutas</li>
+            <li>✗ Generación IA</li>
             <li>✗ Mapas offline</li>
+            <li>✗ Soporte prioritario</li>
           </ul>
           
           <button className="btn pricing__btn">Empezar Gratis</button>
@@ -32,24 +33,45 @@ export default function PricingSection() {
 
         {/* Tier 2: PRO (Featured) */}
         <div className="pricing__card pricing__card--pro glass anim-fade-up" style={{ animationDelay: '0.2s' }}>
-          <div className="pricing__badge">Más popular</div>
-          <h3 className="pricing__tier-name">Wandr PRO</h3>
+          <div className="pricing__badge">Recomendado</div>
+          <h3 className="pricing__tier-name">Wandr Plus</h3>
           <div className="pricing__price">
             <span className="pricing__currency">€</span>
             <span className="pricing__amount">4,99</span>
             <span className="pricing__period">/mes</span>
           </div>
-          <p className="pricing__tier-desc">Para viajeros empedernidos que quieren el control total.</p>
+          <p className="pricing__tier-desc">La experiencia completa para organizar tus viajes.</p>
           
           <ul className="pricing__features">
-            <li>✓ Todo lo de Free</li>
+            <li>✓ Guardar rutas ilimitadas</li>
             <li>✓ Itinerarios IA <strong>ilimitados</strong></li>
             <li>✓ <strong>Descarga offline (PDF/Maps)</strong></li>
-            <li>✓ Badge de Viajero Verificado</li>
-            <li>✓ Sin publicidad de afiliados</li>
+            <li>✓ Sin publicidad</li>
+            <li>✗ Concierge personal</li>
           </ul>
           
-          <button className="btn btn-primary pricing__btn">Pruébalo 7 días gratis</button>
+          <button className="btn btn-primary pricing__btn">Prueba 7 días gratis</button>
+        </div>
+
+        {/* Tier 3: Elite */}
+        <div className="pricing__card glass anim-fade-up" style={{ animationDelay: '0.3s' }}>
+          <h3 className="pricing__tier-name">Wandr Elite</h3>
+          <div className="pricing__price">
+            <span className="pricing__currency">€</span>
+            <span className="pricing__amount">14,99</span>
+            <span className="pricing__period">/mes</span>
+          </div>
+          <p className="pricing__tier-desc">Para los que quieren viajar a otro nivel sin estrés.</p>
+          
+          <ul className="pricing__features">
+            <li>✓ Todo lo de Wandr Plus</li>
+            <li>✓ <strong>Concierge humano 24/7</strong></li>
+            <li>✓ Gestión de reservas VIP</li>
+            <li>✓ Acceso a salas VIP en aeropuertos</li>
+            <li>✓ Seguros de cancelación incluidos</li>
+          </ul>
+          
+          <button className="btn pricing__btn">Viajar en Elite</button>
         </div>
 
       </div>
