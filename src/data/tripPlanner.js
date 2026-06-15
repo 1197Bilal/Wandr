@@ -211,35 +211,68 @@ function buildMorocco(days, companions, vibe) {
 
 // ─── GENERIC ──────────────────────────────────────────────────────────────────
 function buildGeneric(destination, days, companions, vibe) {
-  const dest = capitalizeFirst(destination);
+  // Sanitize destination if user types a whole sentence
+  let destName = destination.trim();
+  if (destName.length > 20) {
+    // Extract first word or use a generic title if it's too long
+    const match = destName.match(/^[a-zA-ZÀ-ÿ]+/);
+    destName = match ? match[0] : 'Europa';
+    destName = capitalizeFirst(destName) + ' y alrededores';
+  } else {
+    destName = capitalizeFirst(destName);
+  }
+
+  // Generate generic days up to 'days'
+  const generatedItinerary = [];
+  for (let i = 1; i <= days; i++) {
+    if (i === 1) {
+      generatedItinerary.push({
+        day: 1, place: `${destName} - Llegada`, emoji: '✈️',
+        morning:   { title: 'Llegada y check-in', desc: 'Instálate en el alojamiento y descansa del viaje.', link: '#' },
+        afternoon: { title: 'Paseo de reconocimiento', desc: 'Explora los alrededores sin rumbo fijo para tomarle el pulso al lugar.', link: '#' },
+        evening:   { title: 'Primera cena local', desc: 'Prueba la gastronomía típica en un restaurante cercano.', link: '#' },
+        tip: 'Tómatelo con calma el primer día para adaptarte.'
+      });
+    } else if (i === days) {
+      generatedItinerary.push({
+        day: i, place: 'Últimas compras y despedida', emoji: '🛍️',
+        morning:   { title: 'Mercado local', desc: 'Aprovecha para comprar recuerdos y productos locales.', link: '#' },
+        afternoon: { title: 'Paseo de despedida', desc: 'Visita ese rincón que te quedó pendiente.', link: '#' },
+        evening:   { title: 'Cena de celebración', desc: 'Despídete con una cena especial.', link: '#' },
+        tip: 'Revisa bien el horario de tu vuelo de vuelta.'
+      });
+    } else {
+      generatedItinerary.push({
+        day: i, place: `Explorando ${destName}`, emoji: '🗺️',
+        morning:   { title: 'Visita principal del día', desc: 'Descubre los lugares más emblemáticos y fotogénicos.', link: '#' },
+        afternoon: { title: 'Experiencia cultural', desc: 'Sumérgete en la cultura local, museos o actividades únicas.', link: '#' },
+        evening:   { title: 'Noche en la ciudad', desc: 'Disfruta del ambiente nocturno y la cena tradicional.', link: '#' },
+        tip: 'Usa transporte público para moverte como un local.'
+      });
+    }
+  }
+
   return {
-    destination: dest, flag: '🌍',
+    destination: destName, flag: '🌍',
     cover: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80',
     days, companions, vibe,
     budget: { total: '800–1.500€', flights: '~400€', hotel: '~60€/noche', daily: '~40€/día' },
     weather: { temp: '20°C - 26°C', icon: '🌤️', text: 'Clima agradable' },
     bestTime: 'Primavera u Otoño',
     flights: [
-      { airline: 'Google Flights', price: 'Busca las mejores fechas', route: `MAD → ${dest}`, duration: 'Variable', link: `https://www.google.com/travel/flights?q=vuelos+a+${encodeURIComponent(dest)}+desde+Madrid` },
-      { airline: 'Skyscanner', price: 'Compara todas las aerolíneas', route: `BCN → ${dest}`, duration: 'Variable', link: `https://www.skyscanner.es/vuelos/bcn/${dest.toLowerCase().substring(0,4)}/` },
-      { airline: 'Kiwi.com', price: 'Rutas alternativas baratas', route: `ESP → ${dest}`, duration: 'Variable', link: `https://www.kiwi.com/es/search/results/spain/${encodeURIComponent(dest)}` },
+      { airline: 'Google Flights', price: 'Ver opciones', route: `Origen → ${destName}`, duration: 'Variable', link: `https://www.google.com/travel/flights?q=vuelos+a+${encodeURIComponent(destName)}` },
+      { airline: 'Skyscanner', price: 'Comparar', route: `Origen → ${destName}`, duration: 'Variable', link: `https://www.skyscanner.es/` },
+      { airline: 'Kiwi.com', price: 'Rutas baratas', route: `Hacia ${destName}`, duration: 'Variable', link: `https://www.kiwi.com/` },
     ],
     hotels: [
-      { name: `Hoteles en ${dest}`, stars: '★★★★★', price: 'Ver precios', vibe: 'Lujo', link: `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(dest)}&class=5` },
-      { name: `Boutique Hotels ${dest}`, stars: '★★★★', price: 'Ver precios', vibe: 'Boutique', link: `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(dest)}&class=4` },
-      { name: `Hostels & Budget ${dest}`, stars: '★★★', price: 'Ver precios', vibe: 'Económico', link: `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(dest)}&class=3` },
+      { name: `Hoteles en ${destName}`, stars: '★★★★★', price: 'Ver precios', vibe: 'Lujo', link: `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(destName)}` },
+      { name: `Boutique Hotels`, stars: '★★★★', price: 'Ver precios', vibe: 'Boutique', link: `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(destName)}` },
+      { name: `Hostels & Budget`, stars: '★★★', price: 'Ver precios', vibe: 'Económico', link: `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(destName)}` },
     ],
-    itinerary: [
-      {
-        day: 1, place: `${dest} - Llegada`, emoji: '✈️',
-        morning:   { title: 'Desayuno en el mercado local', desc: 'La mejor forma de entender un lugar es desayunar donde desayunan los de allí.', link: `https://www.google.com/search?q=mejor+cafe+desayuno+${encodeURIComponent(dest)}` },
-        afternoon: { title: 'Barrio histórico a pie', desc: 'Sin mapas, sin prisas. Piérdete por las calles del centro histórico.', link: `https://www.google.com/maps/search/${encodeURIComponent(dest)}+casco+historico` },
-        evening:   { title: 'Restaurante local recomendado', desc: 'Pregunta en el hotel qué restaurante van los lugareños. Ese es el bueno.', link: `https://www.google.com/search?q=restaurante+autentico+${encodeURIComponent(dest)}` },
-        tip: 'El primer día no planifiques demasiado. Déjate sorprender.'
-      },
-    ],
+    itinerary: generatedItinerary,
     secretItinerary: [
       { day: '1-2', place: 'Ruta Alternativa Secreta', emoji: '🔒', highlight: 'Los rincones que no salen en TripAdvisor. Solo para usuarios Plus.' },
+      { day: '3-4', place: 'Restaurantes Escondidos', emoji: '🍷', highlight: 'Donde comen los locales de verdad. Sin menús en inglés.' },
     ]
   };
 }
