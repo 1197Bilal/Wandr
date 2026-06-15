@@ -23,52 +23,55 @@ export async function generateTripPlan(destination, days, companions, vibe) {
   }
 
   const prompt = `
-Eres un experto diseñador de viajes premium. Diseña un itinerario hora a hora para el siguiente viaje:
-Destino solicitado: "${destination}"
+Eres el mejor asesor de viajes de lujo del mundo. Diseña el viaje de los sueños del usuario.
+Destino/s: "${destination}"
 Duración: ${days} días
-Acompañantes: ${companions}
-Estilo de viaje (Vibe): ${vibe}
+Compañía: ${companions}
+Estilo (Vibe): ${vibe}
 
-Debes devolver EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques de código, empieza con '{' y termina con '}') con exactamente la siguiente estructura:
+INSTRUCCIONES CRÍTICAS:
+1. Usa nombres de LUGARES, RESTAURANTES, CAFETERÍAS Y BARES REALES que existan en ese destino. Nada de nombres genéricos.
+2. Los enlaces de 'link' en el itinerario deben buscar ese lugar real en Google Maps: "https://www.google.com/maps/search/?api=1&query=[Nombre+del+Lugar+[Ciudad]"
+3. Para vuelos, usa este formato exacto: "https://www.google.com/travel/flights?q=vuelos+a+[Ciudad_Principal]"
+4. Para hoteles, usa este formato exacto: "https://www.booking.com/searchresults.es.html?ss=[Ciudad_Principal]"
+
+Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
 {
-  "destination": "Nombre limpio del destino principal",
-  "flag": "Emoji de la bandera",
+  "destination": "El nombre más bonito y comercial para este viaje (ej. 'Toda la magia de Cerdeña')",
+  "flag": "Emoji",
   "cover": "URL de Unsplash sobre el destino (ej. https://images.unsplash.com/photo-...)",
   "days": ${days},
   "companions": "${companions}",
   "vibe": "${vibe}",
-  "budget": { "total": "Presupuesto total estimado", "flights": "Coste estimado vuelos", "hotel": "Coste por noche estimado", "daily": "Coste diario estimado" },
-  "weather": { "temp": "Temperatura media ej. 20°C - 26°C", "icon": "Emoji del clima", "text": "Texto breve" },
-  "bestTime": "Mejor época para viajar",
+  "budget": { "total": "Ej. 1.200€", "flights": "Ej. 250€", "hotel": "Ej. 80€/noche", "daily": "Ej. 60€/día" },
+  "weather": { "temp": "Ej. 22°C - 28°C", "icon": "☀️", "text": "Soleado" },
+  "bestTime": "Mejor mes o época",
   "flights": [
-     { "airline": "Nombre aerolínea", "price": "Precio ej. ~400€", "route": "Ruta ej. MAD → BKK", "duration": "Duración ej. 13h", "link": "https://www.google.com/travel/flights?q=vuelos+a+[DESTINO]" },
-     { "airline": "Otra aerolínea", "price": "Precio", "route": "Ruta", "duration": "Duración", "link": "https://www.skyscanner.es/" },
-     { "airline": "Otra opción", "price": "Precio", "route": "Ruta", "duration": "Duración", "link": "https://www.kiwi.com/" }
+     { "airline": "Google Flights", "price": "Ver opciones", "route": "Vuelos a destino", "duration": "Buscador", "link": "https://www.google.com/travel/flights?q=vuelos+a+[Ciudad]" },
+     { "airline": "Skyscanner", "price": "Comparar", "route": "Todas las aerolíneas", "duration": "Buscador", "link": "https://www.skyscanner.es/" },
+     { "airline": "Kiwi", "price": "Rutas baratas", "route": "Opciones low-cost", "duration": "Buscador", "link": "https://www.kiwi.com/" }
   ],
   "hotels": [
-     { "name": "Nombre real de un hotel premium en el destino", "stars": "★★★★★", "price": "Precio ej. ~200€", "vibe": "Lujo", "link": "https://www.booking.com/searchresults.es.html?ss=[DESTINO]" },
-     { "name": "Nombre real de un hotel boutique", "stars": "★★★★", "price": "Precio", "vibe": "Boutique", "link": "https://www.booking.com/searchresults.es.html?ss=[DESTINO]" },
-     { "name": "Nombre real de un alojamiento económico/hostel", "stars": "★★★", "price": "Precio", "vibe": "Económico", "link": "https://www.booking.com/searchresults.es.html?ss=[DESTINO]" }
+     { "name": "Nombre real de un Hotel 5 estrellas allí", "stars": "★★★★★", "price": "Precio aprox", "vibe": "Lujo supremo", "link": "https://www.booking.com/searchresults.es.html?ss=[Ciudad]" },
+     { "name": "Nombre real de un Hotel Boutique chulo", "stars": "★★★★", "price": "Precio aprox", "vibe": "Boutique & Diseño", "link": "https://www.booking.com/searchresults.es.html?ss=[Ciudad]" },
+     { "name": "Nombre real de un alojamiento top relación calidad/precio", "stars": "★★★", "price": "Precio aprox", "vibe": "Económico pero top", "link": "https://www.booking.com/searchresults.es.html?ss=[Ciudad]" }
   ],
   "itinerary": [
-    // EXACTAMENTE ${days} objetos en este array, uno por cada día del viaje. Usa RESTAURANTES Y LUGARES REALES que existan.
+    // EXACTAMENTE ${days} objetos. Cada día debe ser detallado, desde el desayuno hasta la copa por la noche.
     {
       "day": 1,
-      "place": "Nombre de la zona/barrio",
+      "place": "Zona o ciudad específica",
       "emoji": "Emoji",
-      "morning": { "title": "Qué hacer", "desc": "Descripción detallada", "link": "Enlace a Google Maps de este lugar" },
-      "afternoon": { "title": "Qué hacer", "desc": "Descripción detallada", "link": "Enlace a Google Maps" },
-      "evening": { "title": "Restaurante real para cenar", "desc": "Por qué ir ahí y qué pedir", "link": "Enlace a Google Maps del restaurante" },
-      "tip": "Un consejo muy útil de un local"
+      "morning": { "title": "Desayuno en [Cafetería Real] y visita a [Lugar]", "desc": "Descripción atractiva de qué pedir y qué ver.", "link": "https://www.google.com/maps/search/?api=1&query=[Lugar]" },
+      "afternoon": { "title": "Comida en [Restaurante Real] y [Actividad]", "desc": "Descripción detallada", "link": "https://www.google.com/maps/search/?api=1&query=[Lugar]" },
+      "evening": { "title": "Cena en [Restaurante] y copas en [Bar/Club]", "desc": "Descripción de la vibra nocturna", "link": "https://www.google.com/maps/search/?api=1&query=[Lugar]" },
+      "tip": "Un consejo muy local"
     }
   ],
   "secretItinerary": [
-    // 2 objetos con lugares poco conocidos o fuera de las guías típicas
-    { "day": "1-2", "place": "Lugar oculto", "emoji": "🔒", "highlight": "Explicación breve de por qué vale la pena" },
-    { "day": "3-4", "place": "Lugar oculto 2", "emoji": "🍷", "highlight": "Explicación breve" }
+    { "day": "1-2", "place": "Un secreto local de la zona", "emoji": "🤫", "highlight": "Algo increíble que no sale en las guías turísticas" }
   ]
 }
-No incluyas NADA MÁS que el JSON crudo en tu respuesta. Si hay error de parsing fallará, así que asegúrate de que es un JSON perfecto.
 `;
 
   try {
@@ -115,17 +118,17 @@ function buildGenericFallback(destination, days, companions, vibe) {
     if (i === 1) {
       generatedItinerary.push({
         day: 1, place: `${destName} - Llegada`, emoji: '✈️',
-        morning:   { title: 'Llegada y check-in', desc: 'Instálate en el alojamiento y descansa del viaje.', link: '#' },
-        afternoon: { title: 'Paseo de reconocimiento', desc: 'Explora los alrededores sin rumbo fijo para tomarle el pulso al lugar.', link: '#' },
-        evening:   { title: 'Primera cena local', desc: 'Prueba la gastronomía típica en un restaurante cercano.', link: '#' },
+        morning:   { title: 'Llegada y check-in', desc: 'Instálate en el alojamiento y descansa del viaje.', link: `https://www.google.com/maps/search/?api=1&query=aeropuerto+${destName}` },
+        afternoon: { title: 'Paseo de reconocimiento', desc: 'Explora los alrededores sin rumbo fijo para tomarle el pulso al lugar.', link: `https://www.google.com/maps/search/?api=1&query=centro+${destName}` },
+        evening:   { title: 'Primera cena local', desc: 'Prueba la gastronomía típica en un restaurante cercano.', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+tradicionales+${destName}` },
         tip: 'Tómatelo con calma el primer día para adaptarte.'
       });
     } else {
       generatedItinerary.push({
         day: i, place: `Explorando ${destName}`, emoji: '🗺️',
-        morning:   { title: 'Visita principal del día', desc: 'Descubre los lugares más emblemáticos y fotogénicos.', link: '#' },
-        afternoon: { title: 'Experiencia cultural', desc: 'Sumérgete en la cultura local, museos o actividades únicas.', link: '#' },
-        evening:   { title: 'Noche en la ciudad', desc: 'Disfruta del ambiente nocturno y la cena tradicional.', link: '#' },
+        morning:   { title: 'Visita principal del día', desc: 'Descubre los lugares más emblemáticos y fotogénicos.', link: `https://www.google.com/maps/search/?api=1&query=monumentos+${destName}` },
+        afternoon: { title: 'Experiencia cultural', desc: 'Sumérgete en la cultura local, museos o actividades únicas.', link: `https://www.google.com/maps/search/?api=1&query=museos+${destName}` },
+        evening:   { title: 'Noche en la ciudad', desc: 'Disfruta del ambiente nocturno y la cena tradicional.', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` },
         tip: 'Usa transporte público para moverte como un local.'
       });
     }
