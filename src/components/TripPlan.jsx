@@ -11,8 +11,10 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showPremiumLock, setShowPremiumLock] = useState(false);
 
-  // Mock user status. Change to true to test Pro features without paywall.
-  const isPremium = false; 
+  // Premium whitelist - these emails always get full access
+  const PREMIUM_EMAILS = ['elhspm1@gmail.com'];
+  const currentUserEmail = localStorage.getItem('wandr_user_email') || '';
+  const isPremium = PREMIUM_EMAILS.includes(currentUserEmail);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';

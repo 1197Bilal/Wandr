@@ -31,32 +31,34 @@ export default function Hero() {
 
   const handleStartAnalysis = async () => {
     if (!destination.trim()) return;
-    setStep(2); // Loading questions
+    setStep(2);
     try {
       const q = await generateQuestions(destination);
       setQuestions(q);
-      setStep(3); // Questionnaire
+      setAnswers(new Array(q.length).fill(''));
+      setStep(3);
     } catch (e) {
-      console.error(e);
-      setStep(1);
+      setQuestions([]);
+      setAnswers([]);
+      setStep(3);
     }
   };
 
   const handleGeneratePlan = async () => {
     if (!dates.start || !dates.end) {
-      alert("Por favor, selecciona las fechas del viaje.");
+      alert('Por favor, selecciona las fechas del viaje.');
       return;
     }
-    setStep(4); // Loading plan
+    setStep(4);
     try {
       const p = await generateTripPlan(destination, dates, questions, answers);
       setPlan(p);
-      setStep(1); 
+      setStep(1);
       setDestination('');
-      setAnswers(['','','']);
-      setDates({ start:'', end:'' });
+      setAnswers([]);
+      setDates({ start: '', end: '' });
     } catch (error) {
-      console.error("Failed to generate plan:", error);
+      console.error('Failed to generate plan:', error);
       setStep(1);
     }
   };
@@ -108,31 +110,37 @@ export default function Hero() {
             </div>
           )}
 
-          {/* STEP 3: Dynamic Questionnaire */}
+          {/* STEP 3: Dates + optional questions */}
           {step === 3 && (
             <div className="hero-step2 anim-fade-up" style={{maxWidth: 600, margin: '40px auto 0'}}>
               <button className="hero-step2__back-btn" onClick={() => setStep(1)}>← Cambiar destino</button>
-              
+
               <div className="hero-step2__form" style={{marginTop: 24, textAlign: 'left'}}>
-                
-                {/* Dates (Fixed) */}
-                <div style={{marginBottom: 24}}>
-                  <label className="hero-step2__label" style={{display:'block', marginBottom: 8}}>📅 ¿En qué fechas viajas?</label>
+
+                {/* Destination summary */}
+                <div style={{marginBottom: 20, padding: '12px 16px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)'}}>
+                  <p style={{margin: 0, fontSize: '0.85rem', color: '#888'}}>Tu viaje</p>
+                  <p style={{margin: '4px 0 0', fontSize: '0.95rem', color: '#fff', lineHeight: 1.4}}>{destination}</p>
+                </div>
+
+                {/* Dates */}
+                <div style={{marginBottom: 20}}>
+                  <label className="hero-step2__label" style={{display:'block', marginBottom: 8}}>📅 ¿Cuándo viajas?</label>
                   <div style={{display:'flex', gap: 12}}>
-                    <input type="date" className="hero-corner__search-input" style={{padding:'12px', flex:1}} 
+                    <input type="date" className="hero-corner__search-input" style={{padding:'12px', flex:1}}
                            value={dates.start} onChange={e => setDates({...dates, start: e.target.value})} />
-                    <input type="date" className="hero-corner__search-input" style={{padding:'12px', flex:1}} 
+                    <input type="date" className="hero-corner__search-input" style={{padding:'12px', flex:1}}
                            value={dates.end} onChange={e => setDates({...dates, end: e.target.value})} />
                   </div>
                 </div>
 
-                {/* AI Dynamic Questions */}
+                {/* Only show AI questions if there are any (vague input) */}
                 {questions.map((q, i) => (
-                  <div key={i} style={{marginBottom: 20}}>
+                  <div key={i} style={{marginBottom: 16}}>
                     <label className="hero-step2__label" style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'#fff'}}>✨ {q}</label>
                     <input type="text" className="hero-corner__search-input" style={{padding:'12px', width:'100%', fontSize:'0.95rem'}}
                            placeholder="Tu respuesta..."
-                           value={answers[i]} onChange={e => {
+                           value={answers[i] || ''} onChange={e => {
                              const newAns = [...answers];
                              newAns[i] = e.target.value;
                              setAnswers(newAns);

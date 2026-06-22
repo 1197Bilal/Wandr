@@ -17,21 +17,22 @@ export default function AuthModal({ onClose }) {
     e.preventDefault();
     setLoading(true);
     try {
+      let userCredential;
       if (tab === 0) {
-        // Log in
-        await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // Sign up
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, {
           displayName: name || email.split('@')[0]
         });
       }
+      // Store email for premium check
+      localStorage.setItem('wandr_user_email', userCredential.user.email || '');
       setDone(true);
       setTimeout(() => { onClose(); }, 1200);
     } catch (error) {
       console.error('Auth error:', error);
-      alert(error.message); // Simple error handling for now
+      alert(error.message);
       setLoading(false);
     }
   };
@@ -39,7 +40,8 @@ export default function AuthModal({ onClose }) {
   const handleGoogle = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      localStorage.setItem('wandr_user_email', result.user.email || '');
       onClose();
     } catch (error) {
       console.error('Google Auth error:', error);

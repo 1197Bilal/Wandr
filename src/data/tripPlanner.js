@@ -6,23 +6,23 @@ export const SEARCH_EXAMPLES = [
   'Costa Rica aventura',
 ];
 
-// Parses what the user wrote and returns smart contextual questions
+// Returns [] if the user already gave enough info, or 1-2 targeted questions if not
 export async function generateQuestions(userInput) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    return [
-      "¿Viajas en pareja, familia, amigos o solo?",
-      "¿Prefieres relax total o mezcla con algo de turismo?",
-      "¿Qué presupuesto aproximado tienes?"
-    ];
-  }
 
-  const prompt = `El usuario ha descrito este viaje: "${userInput}"
+  // If the input is detailed enough (>50 chars), skip questions entirely
+  const seemsDetailed = userInput.trim().length > 60 && (
+    userInput.includes('día') || userInput.includes('dia') || userInput.includes('noche') ||
+    userInput.includes('novia') || userInput.includes('amigo') || userInput.includes('familia') ||
+    userInput.includes('solo') || userInput.includes('pareja')
+  );
+  if (seemsDetailed || !apiKey) return [];
 
-Analiza lo que ya sabe (destinos, duración, actividades mencionadas) y devuelve SOLO un JSON con array de 3 preguntas cortas para completar lo que NO mencionó.
-No preguntes lo que ya dijo. Si mencionó pareja, no preguntes compañía. Si mencionó playa, no preguntes estilo.
-Sé específico y útil. Ej: si menciona Capri, pregunta "¿Prefieres alquilar barco privado en Capri o ir en ferry normal?"
-Formato: ["pregunta1", "pregunta2", "pregunta3"]`;
+  const prompt = `El usuario escribió: "${userInput}"
+
+Si la descripción ya incluye: destino, estilo (relax/aventura), compañía (pareja/amigos/solo), devuelve [].
+Si falta algo esencial, devuelve SOLO 1-2 preguntas muy cortas y específicas.
+Formato JSON: [] o ["pregunta1"] o ["pregunta1", "pregunta2"]`;
 
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
@@ -30,7 +30,7 @@ Formato: ["pregunta1", "pregunta2", "pregunta3"]`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 200, responseMimeType: "application/json" }
+        generationConfig: { temperature: 0.3, maxOutputTokens: 100, responseMimeType: "application/json" }
       })
     });
     if (!response.ok) throw new Error();
@@ -38,12 +38,8 @@ Formato: ["pregunta1", "pregunta2", "pregunta3"]`;
     let text = data.candidates[0].content.parts[0].text;
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(text);
-  } catch (err) {
-    return [
-      "¿Viajas en pareja, familia o solo?",
-      "¿Prefieres relax total o algo de turismo/cultura?",
-      "¿Qué presupuesto aproximado tienes?"
-    ];
+  } catch {
+    return [];
   }
 }
 
@@ -56,52 +52,51 @@ export async function generateTripPlan(destination, dates, questions, answers) {
 
   const qaPairs = questions.map((q, i) => `- PREGUNTA: "${q}" -> RESPUESTA DEL USUARIO: "${answers[i]}"`).join('\n');
 
-  const prompt = `Eres un experto planificador de viajes. Genera un itinerario JSON para este viaje.
+  const prompt = `Planificador de viajes experto. Genera itinerario JSON estrictamente basado en la descripción del usuario.
 
-DESCRIPCIÓN COMPLETA DEL USUARIO: "${destination}"
-Fechas: ${dates.start} → ${dates.end} (${days} días en total)
+USUARIO ESCRIBIÓ: "${destination}"
+FECHAS: ${dates.start} → ${dates.end} (${days} días)
+${qaPairs ? `\nINFO ADICIONAL:\n${qaPairs}` : ''}
 
-RESPUESTAS A PREGUNTAS:
-${qaPairs}
+REGLAS CRÍTICAS:
+1. Lee bien la descripción. Si el usuario menciona rutas (ej: "Cagliari 6 días luego Nápoles 3 días"), distribuye los días exactamente como pide.
+2. Si menciona actividades concretas ("cena romántica", "alquilar coche", "playa chill", "ferry a Capri"), ponlas en el día concreto.
+3. Nombres REALES de lugares, restaurantes y bares. Máx 5 palabras en desc.
+4. Links Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+CIUDAD
+5. Links vuelos: https://www.google.com/travel/flights?q=vuelos+ORIGEN+DESTINO&hl=es (pon ciudad de origen y destino reales)
+6. Links hotel Booking: https://www.booking.com/searchresults.html?ss=CIUDAD&checkin=${dates.start}&checkout=${dates.end}&lang=es (ss = nombre de ciudad, NO slug de hotel, porque no puedes saber el slug exacto)
+7. Adáptate al presupuesto y estilo mencionados.
 
-REGLAS:
-- Entiende si el usuario describe una RUTA MULTI-DESTINO (ej: "Cagliari 6 días, Nápoles 1 día, Capri") y distribuye los días correctamente entre destinos.
-- Si menciona actividades concretas ("restaurante romántico", "alquilar coche", "playa chill"), incorpóralas en los días exactos.
-- Nombres REALES de sitios. Descripciones de 3-5 palabras máx.
-- Link Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+LUGAR+CIUDAD (reemplaza espacios con +)
-- Booking: https://www.booking.com/hotel/es/[nombre-hotel-slug].es.html?checkin=${dates.start}&checkout=${dates.end} (usa el slug real del hotel en minúsculas con guiones)
-- Adáptate al presupuesto y vibe mencionados.
-
-JSON EXACTO (sin markdown):
+JSON (sin markdown):
 {
-  "destination": "Título del viaje completo",
-  "flag": "🇮🇹",
-  "cover": "https://images.unsplash.com/photo-REAL_PHOTO_ID?w=1200&q=80",
+  "destination": "Título descriptivo del viaje",
+  "flag": "Emoji país",
+  "cover": "https://images.unsplash.com/photo-[ID_REAL]?w=1200&q=80",
   "days": ${days},
-  "companions": "Con quién viaja",
-  "vibe": "Estilo del viaje",
+  "companions": "Extraído de la descripción",
+  "vibe": "Estilo extraído",
   "budget": { "total": "X€", "flights": "X€", "hotel": "X€/noche", "daily": "X€/día" },
-  "weather": { "temp": "22°C", "icon": "☀️", "text": "Descripción" },
+  "weather": { "temp": "X°C", "icon": "☀️", "text": "Clima" },
   "bestTime": "Meses ideales",
   "flights": [
-    { "airline": "Vueling / Ryanair", "price": "~150€", "route": "MAD → CAG", "duration": "2h30", "link": "https://www.google.com/travel/flights?q=vuelos+madrid+cagliari+${dates.start}" }
+    { "airline": "Vueling/Ryanair", "price": "~X€", "route": "MAD → CAG", "duration": "2h30", "link": "https://www.google.com/travel/flights?q=vuelos+madrid+cagliari+${dates.start}&hl=es" }
   ],
   "hotels": [
-    { "name": "Nombre Hotel Real", "stars": "4★", "price": "$$", "vibe": "Romántico", "link": "https://www.booking.com/hotel/es/nombre-hotel-slug.es.html?checkin=${dates.start}&checkout=${dates.end}" }
+    { "name": "Nombre Hotel Real", "stars": "4★", "price": "$$", "vibe": "Romántico", "link": "https://www.booking.com/searchresults.html?ss=Cagliari&checkin=${dates.start}&checkout=${dates.end}&lang=es" }
   ],
   "itinerary": [
-    { "day": 1, "place": "Ciudad - Descripción", "emoji": "📍",
+    { "day": 1, "place": "Ciudad - Descripción breve", "emoji": "📍",
       "slots": [
-        { "type": "🥐 Desayuno", "title": "Café Real", "desc": "3-5 palabras", "link": "URL Maps real" },
-        { "type": "📸 Mañana", "title": "Lugar Real", "desc": "3-5 palabras", "link": "URL Maps" },
-        { "type": "☕ Café", "title": "Cafetería Real", "desc": "3-5 palabras", "link": "URL Maps" },
-        { "type": "🍝 Comida", "title": "Restaurante Real", "desc": "3-5 palabras", "link": "URL Maps" },
-        { "type": "🚶 Tarde", "title": "Actividad Real", "desc": "3-5 palabras", "link": "URL Maps" },
-        { "type": "🍷 Cena", "title": "Restaurante Real", "desc": "3-5 palabras", "link": "URL Maps" },
-        { "type": "🍹 Copas", "title": "Bar Real", "desc": "3-5 palabras", "link": "URL Maps" }
-      ], "tip": "Consejo breve y útil" }
+        { "type": "🥐 Desayuno", "title": "Nombre Café Real", "desc": "Qué pedir", "link": "https://www.google.com/maps/search/?api=1&query=Nombre+Cafe+Ciudad" },
+        { "type": "📸 Mañana", "title": "Lugar/Actividad Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Ciudad" },
+        { "type": "☕ Café", "title": "Cafetería Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Cafeteria+Ciudad" },
+        { "type": "🍝 Comida", "title": "Restaurante Real", "desc": "Especialidad", "link": "https://www.google.com/maps/search/?api=1&query=Restaurante+Ciudad" },
+        { "type": "🚶 Tarde", "title": "Actividad/Lugar Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Ciudad" },
+        { "type": "🍷 Cena", "title": "Restaurante Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Restaurante+Ciudad" },
+        { "type": "🍹 Copas", "title": "Bar/Coctelería Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Bar+Ciudad" }
+      ], "tip": "Consejo práctico breve" }
   ],
-  "secretItinerary": [ { "day": "2-3", "place": "Lugar Secreto Real", "emoji": "🤫", "highlight": "Por qué es especial" } ]
+  "secretItinerary": [ { "day": "X", "place": "Lugar Secreto Real", "emoji": "🤫", "highlight": "Por qué es especial (1 frase)" } ]
 }`;
 
   try {
