@@ -10,7 +10,7 @@ export const SEARCH_EXAMPLES = [
 export async function generateQuestions(userInput) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-  // If the input is detailed enough (>50 chars), skip questions entirely
+  // Skip questions if input is detailed enough
   const seemsDetailed = userInput.trim().length > 60 && (
     userInput.includes('día') || userInput.includes('dia') || userInput.includes('noche') ||
     userInput.includes('novia') || userInput.includes('amigo') || userInput.includes('familia') ||
@@ -20,23 +20,22 @@ export async function generateQuestions(userInput) {
 
   const prompt = `El usuario escribió: "${userInput}"
 
-Si la descripción ya incluye: destino, estilo (relax/aventura), compañía (pareja/amigos/solo), devuelve [].
-Si falta algo esencial, devuelve SOLO 1-2 preguntas muy cortas y específicas.
+Si la descripción ya incluye destino, estilo y compañía, devuelve [].
+Si falta algo esencial, devuelve SOLO 1-2 preguntas muy cortas.
 Formato JSON: [] o ["pregunta1"] o ["pregunta1", "pregunta2"]`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 100, responseMimeType: "application/json" }
+        generationConfig: { temperature: 0.3, maxOutputTokens: 100, responseMimeType: 'application/json' }
       })
     });
-    if (!response.ok) throw new Error();
-    const data = await response.json();
-    let text = data.candidates[0].content.parts[0].text;
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    let text = data.candidates[0].content.parts[0].text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(text);
   } catch {
     return [];
@@ -45,181 +44,142 @@ Formato JSON: [] o ["pregunta1"] o ["pregunta1", "pregunta2"]`;
 
 export async function generateTripPlan(destination, dates, questions, answers) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    return buildGenericFallback(destination, calculateDays(dates.start, dates.end));
-  }
   const days = calculateDays(dates.start, dates.end);
 
-  const qaPairs = questions.map((q, i) => `- PREGUNTA: "${q}" -> RESPUESTA DEL USUARIO: "${answers[i]}"`).join('\n');
+  if (!apiKey) return buildGenericFallback(destination, days);
 
-  const prompt = `Planificador de viajes experto. Genera itinerario JSON estrictamente basado en la descripción del usuario.
+  const qaPairs = (questions || []).map((q, i) => `${q}: ${answers[i]}`).filter(s => s).join(' | ');
 
-USUARIO ESCRIBIÓ: "${destination}"
-FECHAS: ${dates.start} → ${dates.end} (${days} días)
-${qaPairs ? `\nINFO ADICIONAL:\n${qaPairs}` : ''}
+  const prompt = `Eres un experto planificador de viajes. Genera un itinerario JSON para esta petición.
 
-REGLAS CRÍTICAS:
-1. Lee bien la descripción. Si el usuario menciona rutas (ej: "Cagliari 6 días luego Nápoles 3 días"), distribuye los días exactamente como pide.
-2. Si menciona actividades concretas ("cena romántica", "alquilar coche", "playa chill", "ferry a Capri"), ponlas en el día concreto.
-3. Nombres REALES de lugares, restaurantes y bares. Máx 5 palabras en desc.
-4. Links Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+CIUDAD
-5. Links vuelos: https://www.google.com/travel/flights?q=vuelos+ORIGEN+DESTINO&hl=es (pon ciudad de origen y destino reales)
-6. Links hotel Booking: https://www.booking.com/searchresults.html?ss=CIUDAD&checkin=${dates.start}&checkout=${dates.end}&lang=es (ss = nombre de ciudad, NO slug de hotel, porque no puedes saber el slug exacto)
-7. Adáptate al presupuesto y estilo mencionados.
+PETICIÓN DEL USUARIO: "${destination}"
+FECHAS: ${dates.start} → ${dates.end} (${days} días)${qaPairs ? `\nINFO EXTRA: ${qaPairs}` : ''}
 
-JSON (sin markdown):
+⚠️ REGLAS ESTRICTAS — LEE ANTES DE GENERAR:
+- "destination": título CORTO y LIMPIO (máx 5 palabras). Ej: "Cerdeña & Nápoles". NUNCA copies la petición del usuario.
+- "companions": máx 3 palabras. Ej: "En pareja".
+- "vibe": máx 4 palabras. Ej: "Playa y relax".
+- "name" de hotel: nombre REAL del hotel. NUNCA la petición del usuario.
+- "place" de cada día: ciudad + descripción breve (ej: "Cagliari - Llegada"). NUNCA la petición.
+- Rutas multi-destino: distribuye días exactamente como pide (ej: 6 días Cagliari, 3 Nápoles).
+- Actividades mencionadas (cena romántica, alquilar coche, ferry, playa chill): ponlas en el día correcto.
+- Nombres REALES de restaurantes, cafés y bares. Descripciones ≤5 palabras.
+- Links Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+CIUDAD (espacios → +)
+- Links vuelos Skyscanner (funcionan con fechas): https://www.skyscanner.es/vuelos/mad/cag/${dates.start.replace(/-/g, '')}/${dates.end.replace(/-/g, '')}/ (sustituye cag por el IATA de 3 letras del destino)
+- Links hotel Booking (funcionan con fechas y ciudad): https://www.booking.com/searchresults.html?ss=CIUDAD&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (CIUDAD = solo nombre sin acentos, ej: ss=Cagliari)
+
+JSON sin markdown:
 {
-  "destination": "Título descriptivo del viaje",
-  "flag": "Emoji país",
-  "cover": "https://images.unsplash.com/photo-[ID_REAL]?w=1200&q=80",
+  "destination": "Título corto limpio",
+  "flag": "🇮🇹",
+  "cover": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&q=80",
   "days": ${days},
-  "companions": "Extraído de la descripción",
-  "vibe": "Estilo extraído",
-  "budget": { "total": "X€", "flights": "X€", "hotel": "X€/noche", "daily": "X€/día" },
-  "weather": { "temp": "X°C", "icon": "☀️", "text": "Clima" },
-  "bestTime": "Meses ideales",
+  "companions": "En pareja",
+  "vibe": "Playa y relax",
+  "budget": { "total": "1.800€", "flights": "350€", "hotel": "90€/noche", "daily": "60€/día" },
+  "weather": { "temp": "28°C", "icon": "☀️", "text": "Mediterráneo soleado" },
+  "bestTime": "Junio - Septiembre",
   "flights": [
-    { "airline": "Vueling/Ryanair", "price": "~X€", "route": "MAD → CAG", "duration": "2h30", "link": "https://www.google.com/travel/flights?q=vuelos+madrid+cagliari+${dates.start}&hl=es" }
+    { "airline": "Vueling", "price": "~150€", "route": "MAD → CAG", "duration": "2h30", "link": "https://www.skyscanner.es/vuelos/mad/cag/${dates.start.replace(/-/g, '')}/${dates.end.replace(/-/g, '')}/" },
+    { "airline": "Ryanair", "price": "~80€", "route": "CAG → NAP", "duration": "1h15", "link": "https://www.skyscanner.es/vuelos/cag/nap/" }
   ],
   "hotels": [
-    { "name": "Nombre Hotel Real", "stars": "4★", "price": "$$", "vibe": "Romántico", "link": "https://www.booking.com/searchresults.html?ss=Cagliari&checkin=${dates.start}&checkout=${dates.end}&lang=es" }
+    { "name": "T Hotel Cagliari", "stars": "4★", "price": "$$", "vibe": "Romántico con piscina", "link": "https://www.booking.com/searchresults.html?ss=Cagliari&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" },
+    { "name": "Hotel Royal Continental Napoli", "stars": "4★", "price": "$$", "vibe": "Vistas al mar", "link": "https://www.booking.com/searchresults.html?ss=Napoles&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
   ],
   "itinerary": [
-    { "day": 1, "place": "Ciudad - Descripción breve", "emoji": "📍",
+    { "day": 1, "place": "Cagliari - Llegada y relax", "emoji": "🌴",
       "slots": [
-        { "type": "🥐 Desayuno", "title": "Nombre Café Real", "desc": "Qué pedir", "link": "https://www.google.com/maps/search/?api=1&query=Nombre+Cafe+Ciudad" },
-        { "type": "📸 Mañana", "title": "Lugar/Actividad Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Ciudad" },
-        { "type": "☕ Café", "title": "Cafetería Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Cafeteria+Ciudad" },
-        { "type": "🍝 Comida", "title": "Restaurante Real", "desc": "Especialidad", "link": "https://www.google.com/maps/search/?api=1&query=Restaurante+Ciudad" },
-        { "type": "🚶 Tarde", "title": "Actividad/Lugar Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Ciudad" },
-        { "type": "🍷 Cena", "title": "Restaurante Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Restaurante+Ciudad" },
-        { "type": "🍹 Copas", "title": "Bar/Coctelería Real", "desc": "3-5 palabras", "link": "https://www.google.com/maps/search/?api=1&query=Bar+Ciudad" }
-      ], "tip": "Consejo práctico breve" }
+        { "type": "🥐 Desayuno", "title": "Caffè Torino", "desc": "Cornetto y cappuccino", "link": "https://www.google.com/maps/search/?api=1&query=Caffe+Torino+Cagliari" },
+        { "type": "📸 Mañana", "title": "Bastione di San Remy", "desc": "Vistas panorámicas", "link": "https://www.google.com/maps/search/?api=1&query=Bastione+San+Remy+Cagliari" },
+        { "type": "☕ Café", "title": "Antico Caffè", "desc": "El más histórico de Cagliari", "link": "https://www.google.com/maps/search/?api=1&query=Antico+Caffe+Cagliari" },
+        { "type": "🍝 Comida", "title": "Ristorante Dal Corsaro", "desc": "Pasta fresca sarda", "link": "https://www.google.com/maps/search/?api=1&query=Ristorante+Dal+Corsaro+Cagliari" },
+        { "type": "🚶 Tarde", "title": "Playa Poetto", "desc": "8km de arena blanca", "link": "https://www.google.com/maps/search/?api=1&query=Spiaggia+del+Poetto+Cagliari" },
+        { "type": "🍷 Cena", "title": "Su Tzilleri e Su Bundu", "desc": "Gastronomía sarda auténtica", "link": "https://www.google.com/maps/search/?api=1&query=Su+Tzilleri+e+Su+Bundu+Cagliari" },
+        { "type": "🍹 Copas", "title": "Caffè Letterario", "desc": "Cócteles con vistas al mar", "link": "https://www.google.com/maps/search/?api=1&query=Caffe+Letterario+Cagliari" }
+      ], "tip": "Reserva mesa para cenar, se llena siempre." }
   ],
-  "secretItinerary": [ { "day": "X", "place": "Lugar Secreto Real", "emoji": "🤫", "highlight": "Por qué es especial (1 frase)" } ]
+  "secretItinerary": [ { "day": "3", "place": "Cala Goloritzé", "emoji": "🤫", "highlight": "La cala más bella de Italia, solo accesible a pie o en barco." } ]
 }`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
+        generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
       })
     });
-    if (!response.ok) throw new Error("API Error");
-    const data = await response.json();
-    let text = data.candidates[0].content.parts[0].text;
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    if (!res.ok) throw new Error('API Error');
+    const data = await res.json();
+    let text = data.candidates[0].content.parts[0].text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(text);
   } catch (error) {
-    console.error("Error generating final plan:", error);
+    console.error('Error generating plan:', error);
     return buildGenericFallback(destination, days);
   }
 }
 
 export async function editTripPlan(currentPlanJSON, userEditRequest) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("No API key available for editing.");
+  if (!apiKey) throw new Error('No API key');
 
-  const prompt = `
-Eres un agente de viajes premium editando un itinerario existente.
-A continuación tienes el JSON del itinerario actual:
-${JSON.stringify(currentPlanJSON)}
+  const prompt = `Edita este itinerario JSON según lo que pide el usuario.
+JSON actual: ${JSON.stringify(currentPlanJSON)}
+Cambio solicitado: "${userEditRequest}"
+Devuelve SOLO el JSON completo actualizado, sin markdown.`;
 
-El usuario ha pedido este cambio: "${userEditRequest}"
-
-INSTRUCCIONES CRÍTICAS:
-1. Aplica el cambio solicitado de forma inteligente y coherente.
-2. Si el cambio afecta a los días o fechas, mantenlas consistentes.
-3. Devuelve EXCLUSIVAMENTE el objeto JSON completo y actualizado con la misma estructura exacta que te he dado. No devuelvas markdown, solo el JSON raw.
-  `;
-
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
-      })
-    });
-    if (!response.ok) throw new Error("API Error");
-    const data = await response.json();
-    let text = data.candidates[0].content.parts[0].text;
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Error editing plan:", error);
-    throw error;
-  }
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+    })
+  });
+  if (!res.ok) throw new Error('API Error');
+  const data = await res.json();
+  let text = data.candidates[0].content.parts[0].text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return JSON.parse(text);
 }
 
 function calculateDays(start, end) {
   if (!start || !end) return 7;
-  const d1 = new Date(start);
-  const d2 = new Date(end);
-  const diffTime = Math.abs(d2 - d1);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  return diffDays > 0 ? diffDays : 7;
+  const diff = Math.abs(new Date(end) - new Date(start));
+  const d = Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
+  return d > 0 ? d : 7;
 }
 
-// ─── FALLBACK GENÉRICO (VIAJE DE LUJO A PLAYA EXÓTICA) ──────────────────────────────────
 function buildGenericFallback(destination, days) {
-  let destName = destination.trim() || 'Bali';
-
-  const generatedItinerary = [];
+  const destName = destination.trim().split(' ').slice(0, 3).join(' ') || 'Italia';
+  const itinerary = [];
   for (let i = 1; i <= days; i++) {
-    if (i === 1) {
-      generatedItinerary.push({
-        day: 1, place: `Llegada a ${destName} y Relax`, emoji: '🌴',
-        slots: [
-          { type: '🥐 Desayuno', title: 'Bowl Tropical en la playa', desc: 'Acai y coco fresco', link: '#' },
-          { type: '📸 Mañana', title: 'Check-in Resort 5★', desc: 'Instálate en tu villa', link: '#' },
-          { type: '☕ Café', title: 'Café frente al mar', desc: 'Relájate escuchando las olas', link: '#' },
-          { type: '🍝 Comida', title: 'Beach Club Local', desc: 'Pescado fresco y vistas', link: '#' },
-          { type: '🚶 Tarde', title: 'Primer baño en el mar', desc: 'Aguas cristalinas', link: '#' },
-          { type: '🍷 Cena', title: 'Cena a la luz de las velas', desc: 'Restaurante en la arena', link: '#' },
-          { type: '🍹 Copas', title: 'Sunset Lounge', desc: 'Cócteles de autor', link: '#' }
-        ],
-        tip: 'Tómatelo con calma el primer día, hidrátate bien y disfruta de la brisa marina.'
-      });
-    } else {
-      generatedItinerary.push({
-        day: i, place: `Explorando el Paraíso`, emoji: '🌊',
-        slots: [
-          { type: '🥐 Desayuno', title: 'Desayuno Flotante', desc: 'En la piscina privada', link: '#' },
-          { type: '📸 Mañana', title: 'Excursión en Catamarán', desc: 'Snorkel en arrecifes', link: '#' },
-          { type: '☕ Café', title: 'Parada en Isla Virgen', desc: 'Coco loco en la arena', link: '#' },
-          { type: '🍝 Comida', title: 'Barbacoa de marisco', desc: 'Directo del pescador', link: '#' },
-          { type: '🚶 Tarde', title: 'Masaje Balinés', desc: 'Spa con vistas al mar', link: '#' },
-          { type: '🍷 Cena', title: 'Fine Dining Exótico', desc: 'Fusión asiática-local', link: '#' },
-          { type: '🍹 Copas', title: 'Fiesta en la playa', desc: 'Música en directo', link: '#' }
-        ],
-        tip: 'No olvides crema solar biodegradable y tu mejor bañador.'
-      });
-    }
+    itinerary.push({
+      day: i,
+      place: i === 1 ? `${destName} - Llegada` : `Día ${i} en ${destName}`,
+      emoji: i === 1 ? '✈️' : '🗺️',
+      slots: [
+        { type: '🥐 Desayuno', title: 'Café local', desc: 'Desayuno tradicional', link: `https://www.google.com/maps/search/?api=1&query=cafe+${destName}` },
+        { type: '📸 Mañana', title: 'Visita principal', desc: 'Monumento o playa', link: `https://www.google.com/maps/search/?api=1&query=que+ver+${destName}` },
+        { type: '🍝 Comida', title: 'Restaurante local', desc: 'Cocina típica', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+${destName}` },
+        { type: '🚶 Tarde', title: 'Explorar barrio', desc: 'Paseo y tiendas', link: `https://www.google.com/maps/search/?api=1&query=centro+${destName}` },
+        { type: '🍷 Cena', title: 'Cena con vistas', desc: 'Cocina italiana', link: `https://www.google.com/maps/search/?api=1&query=cenar+${destName}` },
+        { type: '🍹 Copas', title: 'Bar de moda', desc: 'Ambiente nocturno', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` }
+      ],
+      tip: i === 1 ? 'Tómatelo con calma el primer día.' : 'Usa transporte público o alquila bici.'
+    });
   }
-
   return {
-    destination: destName, flag: '🥥', cover: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=1200&q=80',
-    days, companions: 'Tu pareja o amigos', vibe: 'Lujo y Relax',
-    budget: { total: '2.500€', flights: '~800€', hotel: '~150€/noche', daily: '~100€/día' },
-    weather: { temp: '28°C - 32°C', icon: '☀️', text: 'Tropical' },
-    bestTime: 'Todo el año',
-    flights: [
-      { airline: 'Emirates / Qatar', price: 'Ver options', route: `Hacia ${destName}`, duration: '14h', link: `https://www.google.com/travel/flights?q=vuelos+a+${destName}` }
-    ],
-    hotels: [
-      { name: `Resort & Spa en ${destName}`, stars: '★★★★★', price: 'Ver', vibe: 'Luxury', link: `https://www.booking.com/searchresults.es.html?ss=${destName}` }
-    ],
-    itinerary: generatedItinerary,
-    secretItinerary: [ { day: '1-3', place: 'Playa Secreta Privada', emoji: '🤫', highlight: 'Solo accesible en barco. Paraíso virgen sin turistas.' } ]
+    destination: destName, flag: '🇮🇹',
+    cover: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&q=80',
+    days, companions: 'En pareja', vibe: 'Cultura y relax',
+    budget: { total: '1.500€', flights: '300€', hotel: '80€/noche', daily: '60€/día' },
+    weather: { temp: '26°C', icon: '☀️', text: 'Mediterráneo' },
+    bestTime: 'Primavera y verano',
+    flights: [{ airline: 'Skyscanner', price: 'Ver precios', route: `Vuelos a ${destName}`, duration: '-', link: `https://www.skyscanner.es/` }],
+    hotels: [{ name: `Hoteles en ${destName}`, stars: '4★', price: '$$', vibe: 'Céntrico', link: `https://www.booking.com/searchresults.html?ss=${destName}&group_adults=2` }],
+    itinerary,
+    secretItinerary: [{ day: '2', place: 'Rincón secreto local', emoji: '🤫', highlight: 'Pregunta en el hotel, los locales saben.' }]
   };
-}
-
-function capitalizeFirst(str) {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
