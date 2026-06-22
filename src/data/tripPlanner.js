@@ -47,43 +47,47 @@ Ejemplo: ["¿Viajas en pareja o con amigos?", "¿Prefieres relax o ruta intensa?
   }
 }
 
-export async function generateTripPlan(destination, dates, answers) {
+export async function generateTripPlan(destination, dates, questions, answers) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const days = calculateDays(dates.start, dates.end) || 7;
-
   if (!apiKey) {
-    console.warn("No API key, falling back.");
-    return buildGenericFallback(destination, days);
+    return buildGenericFallback(destination, calculateDays(dates.start, dates.end));
   }
+  const days = calculateDays(dates.start, dates.end);
+
+  const qaPairs = questions.map((q, i) => `- PREGUNTA: "${q}" -> RESPUESTA DEL USUARIO: "${answers[i]}"`).join('\n');
 
   const prompt = `
-Eres un asesor de viajes experto. Genera un viaje hiper-optimizado (pocas palabras, máximo valor) para "${destination}".
+Eres un asesor de viajes experto. Tu objetivo es generar un viaje hiper-optimizado y ESTRICTAMENTE ADAPTADO a lo que pide el usuario.
+Destino: "${destination}".
 Fechas: ${dates.start} a ${dates.end} (${days} días).
-Filtros: ${answers.join(', ')}.
 
-REGLAS ESTRICTAS (AHORRA TOKENS):
+RESPUESTAS DEL USUARIO (¡SÚPER IMPORTANTE, ADÁPTATE A ESTO!):
+${qaPairs}
+
+REGLAS ESTRICTAS (AHORRA TOKENS Y ADÁPTATE):
 1. Cero descripciones largas. Usa 3-5 palabras máx por descripción.
-2. Nombres REALES de restaurantes, cafés y bares obligatorios.
-3. Link Maps: "https://www.google.com/maps/search/?api=1&query=[Lugar+[Ciudad]"
-4. Vuelos/Booking: Usa las fechas exactas proporcionadas.
+2. Nombres REALES de restaurantes, hoteles y lugares.
+3. SI EL PRESUPUESTO ES BAJO: Pon hostales, comida callejera o sitios baratos. NO pongas hoteles 5 estrellas ni restaurantes caros.
+4. SI PIDEN PLAYA/CHILL: Enfoca el itinerario en relax, no los satures a monumentos.
+5. Vuelos/Booking: Usa las fechas exactas proporcionadas.
 
-Devuelve ESTE JSON EXACTO (sin markdown, solo JSON raw):
+Devuelve ESTE JSON EXACTO (sin markdown, solo JSON raw) con los valores adaptados al usuario:
 {
   "destination": "Ciudad/País",
   "flag": "Emoji",
-  "cover": "URL Unsplash HD",
+  "cover": "URL Unsplash HD que encaje con el destino y vibe",
   "days": ${days},
-  "companions": "Extraído",
-  "vibe": "Extraído",
-  "budget": { "total": "1200€", "flights": "250€", "hotel": "80€/n", "daily": "60€/d" },
+  "companions": "Resumen de con quién viaja (ej: Pareja)",
+  "vibe": "Resumen del estilo (ej: Chill y Barato)",
+  "budget": { "total": "[Presupuesto total estimado]", "flights": "[€ vuelos]", "hotel": "[€/noche adaptado]", "daily": "[€/día adaptado]" },
   "weather": { "temp": "22°C", "icon": "☀️", "text": "Sol" },
-  "bestTime": "Meses",
+  "bestTime": "Meses ideales",
   "flights": [
      { "airline": "Google Flights", "price": "Ver", "route": "Ida y Vuelta", "duration": "-", "link": "https://www.google.com/travel/flights?q=Flights+to+[Dest]+from+${dates.start}+to+${dates.end}" }
   ],
   "hotels": [
-     { "name": "Hotel Lujo", "stars": "5★", "price": "$$$", "vibe": "Premium", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" },
-     { "name": "Hotel Medio", "stars": "4★", "price": "$$", "vibe": "Boutique", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" }
+     { "name": "[Nombre Hotel Real Adaptado al Presupuesto 1]", "stars": "[Ej: 3★ o Hostal]", "price": "[Ej: $ o $$]", "vibe": "[Ej: Mochilero o Romántico]", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" },
+     { "name": "[Nombre Hotel Real Adaptado al Presupuesto 2]", "stars": "[Ej: 4★ o Apartamento]", "price": "[Ej: $$]", "vibe": "[Ej: Céntrico]", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" }
   ],
   "itinerary": [
     // Array de ${days} días EXACTOS. Cada día debe tener estas claves:

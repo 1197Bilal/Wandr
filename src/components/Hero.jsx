@@ -49,7 +49,7 @@ export default function Hero() {
     }
     setStep(4); // Loading plan
     try {
-      const p = await generateTripPlan(destination, dates, answers);
+      const p = await generateTripPlan(destination, dates, questions, answers);
       setPlan(p);
       setStep(1); 
       setDestination('');
