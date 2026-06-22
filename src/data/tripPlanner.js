@@ -6,22 +6,23 @@ export const SEARCH_EXAMPLES = [
   'Costa Rica aventura',
 ];
 
-export async function generateQuestions(destination) {
+// Parses what the user wrote and returns smart contextual questions
+export async function generateQuestions(userInput) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
     return [
       "¿Viajas en pareja, familia, amigos o solo?",
-      "¿Prefieres lujo relajado o aventura y descubrir rincones?",
-      "¿Qué tipo de comida te gustaría probar más?"
+      "¿Prefieres relax total o mezcla con algo de turismo?",
+      "¿Qué presupuesto aproximado tienes?"
     ];
   }
 
-  const prompt = `
-Eres un agente de viajes premium. El usuario te ha pedido un viaje con esta descripción inicial: "${destination}".
-Necesitas hacerle 3 preguntas cortas, directas y atractivas para poder diseñarle el itinerario perfecto y 100% a medida.
-Devuelve EXCLUSIVAMENTE un JSON con un array de 3 strings.
-Ejemplo: ["¿Viajas en pareja o con amigos?", "¿Prefieres relax o ruta intensa?", "¿Presupuesto mochilero o lujo?"]
-`;
+  const prompt = `El usuario ha descrito este viaje: "${userInput}"
+
+Analiza lo que ya sabe (destinos, duración, actividades mencionadas) y devuelve SOLO un JSON con array de 3 preguntas cortas para completar lo que NO mencionó.
+No preguntes lo que ya dijo. Si mencionó pareja, no preguntes compañía. Si mencionó playa, no preguntes estilo.
+Sé específico y útil. Ej: si menciona Capri, pregunta "¿Prefieres alquilar barco privado en Capri o ir en ferry normal?"
+Formato: ["pregunta1", "pregunta2", "pregunta3"]`;
 
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
@@ -29,19 +30,18 @@ Ejemplo: ["¿Viajas en pareja o con amigos?", "¿Prefieres relax o ruta intensa?
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 200, responseMimeType: "application/json" }
       })
     });
-    if (!response.ok) throw new Error("API Error");
+    if (!response.ok) throw new Error();
     const data = await response.json();
     let text = data.candidates[0].content.parts[0].text;
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(text);
   } catch (err) {
-    console.error(err);
     return [
       "¿Viajas en pareja, familia o solo?",
-      "¿Prefieres lujo relajado o aventura?",
+      "¿Prefieres relax total o algo de turismo/cultura?",
       "¿Qué presupuesto aproximado tienes?"
     ];
   }
@@ -56,58 +56,52 @@ export async function generateTripPlan(destination, dates, questions, answers) {
 
   const qaPairs = questions.map((q, i) => `- PREGUNTA: "${q}" -> RESPUESTA DEL USUARIO: "${answers[i]}"`).join('\n');
 
-  const prompt = `
-Eres un asesor de viajes experto. Tu objetivo es generar un viaje hiper-optimizado y ESTRICTAMENTE ADAPTADO a lo que pide el usuario.
-Destino: "${destination}".
-Fechas: ${dates.start} a ${dates.end} (${days} días).
+  const prompt = `Eres un experto planificador de viajes. Genera un itinerario JSON para este viaje.
 
-RESPUESTAS DEL USUARIO (¡SÚPER IMPORTANTE, ADÁPTATE A ESTO!):
+DESCRIPCIÓN COMPLETA DEL USUARIO: "${destination}"
+Fechas: ${dates.start} → ${dates.end} (${days} días en total)
+
+RESPUESTAS A PREGUNTAS:
 ${qaPairs}
 
-REGLAS ESTRICTAS (AHORRA TOKENS Y ADÁPTATE):
-1. Cero descripciones largas. Usa 3-5 palabras máx por descripción.
-2. Nombres REALES de restaurantes, hoteles y lugares.
-3. SI EL PRESUPUESTO ES BAJO: Pon hostales, comida callejera o sitios baratos. NO pongas hoteles 5 estrellas ni restaurantes caros.
-4. SI PIDEN PLAYA/CHILL: Enfoca el itinerario en relax, no los satures a monumentos.
-5. Vuelos/Booking: Usa las fechas exactas proporcionadas.
+REGLAS:
+- Entiende si el usuario describe una RUTA MULTI-DESTINO (ej: "Cagliari 6 días, Nápoles 1 día, Capri") y distribuye los días correctamente entre destinos.
+- Si menciona actividades concretas ("restaurante romántico", "alquilar coche", "playa chill"), incorpóralas en los días exactos.
+- Nombres REALES de sitios. Descripciones de 3-5 palabras máx.
+- Link Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+LUGAR+CIUDAD (reemplaza espacios con +)
+- Booking: https://www.booking.com/hotel/es/[nombre-hotel-slug].es.html?checkin=${dates.start}&checkout=${dates.end} (usa el slug real del hotel en minúsculas con guiones)
+- Adáptate al presupuesto y vibe mencionados.
 
-Devuelve ESTE JSON EXACTO (sin markdown, solo JSON raw) con los valores adaptados al usuario:
+JSON EXACTO (sin markdown):
 {
-  "destination": "Ciudad/País",
-  "flag": "Emoji",
-  "cover": "URL Unsplash HD que encaje con el destino y vibe",
+  "destination": "Título del viaje completo",
+  "flag": "🇮🇹",
+  "cover": "https://images.unsplash.com/photo-REAL_PHOTO_ID?w=1200&q=80",
   "days": ${days},
-  "companions": "Resumen de con quién viaja (ej: Pareja)",
-  "vibe": "Resumen del estilo (ej: Chill y Barato)",
-  "budget": { "total": "[Presupuesto total estimado]", "flights": "[€ vuelos]", "hotel": "[€/noche adaptado]", "daily": "[€/día adaptado]" },
-  "weather": { "temp": "22°C", "icon": "☀️", "text": "Sol" },
+  "companions": "Con quién viaja",
+  "vibe": "Estilo del viaje",
+  "budget": { "total": "X€", "flights": "X€", "hotel": "X€/noche", "daily": "X€/día" },
+  "weather": { "temp": "22°C", "icon": "☀️", "text": "Descripción" },
   "bestTime": "Meses ideales",
   "flights": [
-     { "airline": "Google Flights", "price": "Ver", "route": "Ida y Vuelta", "duration": "-", "link": "https://www.google.com/travel/flights?q=Flights+to+[Dest]+from+${dates.start}+to+${dates.end}" }
+    { "airline": "Vueling / Ryanair", "price": "~150€", "route": "MAD → CAG", "duration": "2h30", "link": "https://www.google.com/travel/flights?q=vuelos+madrid+cagliari+${dates.start}" }
   ],
   "hotels": [
-     { "name": "[Nombre Hotel Real Adaptado al Presupuesto 1]", "stars": "[Ej: 3★ o Hostal]", "price": "[Ej: $ o $$]", "vibe": "[Ej: Mochilero o Romántico]", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" },
-     { "name": "[Nombre Hotel Real Adaptado al Presupuesto 2]", "stars": "[Ej: 4★ o Apartamento]", "price": "[Ej: $$]", "vibe": "[Ej: Céntrico]", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" }
+    { "name": "Nombre Hotel Real", "stars": "4★", "price": "$$", "vibe": "Romántico", "link": "https://www.booking.com/hotel/es/nombre-hotel-slug.es.html?checkin=${dates.start}&checkout=${dates.end}" }
   ],
   "itinerary": [
-    // Array de ${days} días EXACTOS. Cada día debe tener estas claves:
-    {
-      "day": 1,
-      "place": "Zona",
-      "emoji": "📍",
+    { "day": 1, "place": "Ciudad - Descripción", "emoji": "📍",
       "slots": [
-        { "type": "🥐 Desayuno", "title": "Café en [Local Real]", "desc": "Especialidad local", "link": "URL Maps" },
-        { "type": "📸 Mañana", "title": "[Monumento]", "desc": "Visita principal", "link": "URL Maps" },
-        { "type": "☕ Café", "title": "Descanso en [Cafetería]", "desc": "Café de especialidad", "link": "URL Maps" },
-        { "type": "🍝 Comida", "title": "[Restaurante]", "desc": "Plato típico", "link": "URL Maps" },
-        { "type": "🚶 Tarde", "title": "[Lugar/Barrio]", "desc": "Paseo", "link": "URL Maps" },
-        { "type": "🍷 Cena", "title": "[Restaurante/Trattoria]", "desc": "Cena top", "link": "URL Maps" },
-        { "type": "🍹 Copas", "title": "Cócteles en [Bar]", "desc": "Vida nocturna", "link": "URL Maps" }
-      ],
-      "tip": "Tip"
-    }
+        { "type": "🥐 Desayuno", "title": "Café Real", "desc": "3-5 palabras", "link": "URL Maps real" },
+        { "type": "📸 Mañana", "title": "Lugar Real", "desc": "3-5 palabras", "link": "URL Maps" },
+        { "type": "☕ Café", "title": "Cafetería Real", "desc": "3-5 palabras", "link": "URL Maps" },
+        { "type": "🍝 Comida", "title": "Restaurante Real", "desc": "3-5 palabras", "link": "URL Maps" },
+        { "type": "🚶 Tarde", "title": "Actividad Real", "desc": "3-5 palabras", "link": "URL Maps" },
+        { "type": "🍷 Cena", "title": "Restaurante Real", "desc": "3-5 palabras", "link": "URL Maps" },
+        { "type": "🍹 Copas", "title": "Bar Real", "desc": "3-5 palabras", "link": "URL Maps" }
+      ], "tip": "Consejo breve y útil" }
   ],
-  "secretItinerary": [ { "day": "1", "place": "Lugar Oculto", "emoji": "🤫", "highlight": "Secreto" } ]
+  "secretItinerary": [ { "day": "2-3", "place": "Lugar Secreto Real", "emoji": "🤫", "highlight": "Por qué es especial" } ]
 }`;
 
   try {
