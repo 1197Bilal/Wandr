@@ -130,6 +130,43 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   }
 }
 
+export async function editTripPlan(currentPlanJSON, userEditRequest) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) throw new Error("No API key available for editing.");
+
+  const prompt = `
+Eres un agente de viajes premium editando un itinerario existente.
+A continuación tienes el JSON del itinerario actual:
+${JSON.stringify(currentPlanJSON)}
+
+El usuario ha pedido este cambio: "${userEditRequest}"
+
+INSTRUCCIONES CRÍTICAS:
+1. Aplica el cambio solicitado de forma inteligente y coherente.
+2. Si el cambio afecta a los días o fechas, mantenlas consistentes.
+3. Devuelve EXCLUSIVAMENTE el objeto JSON completo y actualizado con la misma estructura exacta que te he dado. No devuelvas markdown, solo el JSON raw.
+  `;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
+      })
+    });
+    if (!response.ok) throw new Error("API Error");
+    const data = await response.json();
+    let text = data.candidates[0].content.parts[0].text;
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error editing plan:", error);
+    throw error;
+  }
+}
+
 function calculateDays(start, end) {
   if (!start || !end) return 7;
   const d1 = new Date(start);

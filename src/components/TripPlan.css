@@ -112,6 +112,137 @@
 @keyframes slideUpModal { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* Premium Action Bar */
+.tp-action-bar {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+}
+.tp-action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+}
+.tp-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* AI Iterative Edit Bar */
+.tp-ai-edit-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 20;
+}
+.tp-ai-edit-bar input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  outline: none;
+}
+.tp-ai-edit-bar input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.tp-ai-edit-bar button {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tp-ai-edit-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tp-ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #FF8E53;
+  font-weight: 500;
+  margin: 0 auto;
+}
+
+/* Premium Lock Modal */
+.tp-premium-lock-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+}
+.tp-premium-lock-content {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 24px;
+  text-align: center;
+  max-width: 400px;
+}
+.tp-premium-lock-content h3 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+  background: linear-gradient(to right, #FFD700, #FDB931);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.tp-premium-lock-content p {
+  color: #bbb;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+.tp-premium-lock-btn {
+  display: block;
+  width: 100%;
+  background: white;
+  color: black;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.tp-premium-lock-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.tp-premium-lock-close:hover {
+  color: white;
+}
+
 @media (max-width: 600px) {
   .tp-options-grid { grid-template-columns: 1fr; }
   .tp-body, .tp-section { padding: 16px; }

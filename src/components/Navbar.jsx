@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { label: 'Comunidad', href: '#community' },
 ];
 
-export default function Navbar({ activeSection, user, onLoginClick, onLogoutClick }) {
+export default function Navbar({ activeSection, user, onLoginClick, onLogoutClick, onProfileClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -34,7 +34,7 @@ export default function Navbar({ activeSection, user, onLoginClick, onLogoutClic
       <div className="navbar__actions">
         {user ? (
           <div className="navbar__user">
-            <span className="navbar__user-name">Hola, {user.name}</span>
+            <button className="btn btn-ghost" onClick={onProfileClick} id="nav-profile">👤 Mi Perfil</button>
             <button className="btn btn-ghost" onClick={onLogoutClick} id="nav-logout">Salir</button>
           </div>
         ) : (

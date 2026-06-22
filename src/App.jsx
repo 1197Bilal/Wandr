@@ -10,6 +10,7 @@ import PricingSection from './components/PricingSection';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import ComposeModal from './components/ComposeModal';
+import ProfileModal from './components/ProfileModal';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
@@ -17,6 +18,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function App() {
         user={user} 
         onLoginClick={() => setShowAuth(true)} 
         onLogoutClick={handleLogout}
+        onProfileClick={() => setShowProfile(true)}
       />
       
       <main>
@@ -78,6 +81,13 @@ export default function App() {
         <ComposeModal 
           user={user}
           onClose={() => setShowCompose(false)} 
+        />
+      )}
+
+      {showProfile && user && (
+        <ProfileModal 
+          user={user}
+          onClose={() => setShowProfile(false)} 
         />
       )}
     </div>
