@@ -147,13 +147,15 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                   <div className="tp-day-slots">
                     {step.slots?.map((slot, si) => (
                       <div key={si} className="tp-slot">
-                        <span className="tp-slot__time">{slot.type}</span>
+                        <div className="tp-slot__type-badge">{slot.type}</div>
                         <div className="tp-slot__content">
-                          <div className="tp-slot__title-row">
+                          <div className="tp-slot__header">
                             <strong className="tp-slot__title">{slot.title}</strong>
-                            <a href={slot.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn">
-                              📍 Ver en Maps
-                            </a>
+                            {slot.link && slot.link !== '#' && (
+                              <a href={slot.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn">
+                                📍 Ver en Maps
+                              </a>
+                            )}
                           </div>
                           <p className="tp-slot__desc">{slot.desc}</p>
                         </div>
@@ -161,16 +163,33 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                     ))}
                   </div>
 
-                  <div className="tp-day-tip">
-                    <span>💡</span>
-                    <p>{step.tip}</p>
-                  </div>
+                  {step.tip && (
+                    <div className="tp-day-tip glass-strong">
+                      <span className="tp-day-tip-icon">💡</span>
+                      <p><strong>Tip del viajero experto:</strong> {step.tip}</p>
+                    </div>
+                  )}
                 </div>
               ))}
 
-              {/* Paywall */}
+              {/* Paywall directly after Day 1 */}
               {lockedSteps.length > 0 && !isPremium && (
-                <div className="tp-paywall">
+                <div className="tp-paywall-inline glass-strong">
+                  <span className="tp-paywall__lock">🔒</span>
+                  <h3 className="tp-paywall__title">Desbloquea el Itinerario Completo (+{lockedSteps.length} días)</h3>
+                  <p className="tp-paywall__sub">
+                    No te conformes con lo básico. Los usuarios Pro acceden a los <strong>restaurantes secretos</strong>, <strong>mapas offline</strong> y la <strong>ruta secreta</strong> de los locales.
+                  </p>
+                  <a href="#pricing" onClick={onClose} className="tp-paywall__btn-glow">
+                    Hazte PRO por 4,99€/mes →
+                  </a>
+                  <span className="tp-paywall__hint">Empieza con 7 días gratis. Cancela cuando quieras.</span>
+                </div>
+              )}
+
+              {/* Blurred locked steps below */}
+              {lockedSteps.length > 0 && !isPremium && (
+                <div className="tp-paywall-blurred-area">
                   <div className="tp-paywall__blurred">
                     {lockedSteps.map((step, idx) => (
                       <div key={idx} className="tp-day-card glass-strong tp-day-card--blur">
@@ -188,14 +207,7 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                       </div>
                     ))}
                   </div>
-                  <div className="tp-paywall__gradient" />
-                  <div className="tp-paywall__cta">
-                    <span className="tp-paywall__lock">🔒</span>
-                    <h3 className="tp-paywall__title">⚠️ Plan bloqueado: +{lockedSteps.length} días ocultos</h3>
-                    <p className="tp-paywall__sub">Los viajeros premium ahorran de media 12 horas de búsqueda. ¿Vas a improvisar y perderte los mejores sitios? Desbloquea el plan hora a hora, los restaurantes secretos y la guía offline ahora mismo con <strong>Wandr Plus</strong>.</p>
-                    <a href="#pricing" onClick={onClose} className="tp-paywall__btn" style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white'}}>Desbloquear por solo 4,99€/mes →</a>
-                    <span className="tp-paywall__hint">Empieza con 7 días gratis. No dejes que tu viaje sea "uno más".</span>
-                  </div>
+                  <div className="tp-paywall__gradient-overlay" />
                 </div>
               )}
             </>

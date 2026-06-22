@@ -172,63 +172,57 @@ function calculateDays(start, end) {
   return diffDays > 0 ? diffDays : 7;
 }
 
-// ─── FALLBACK GENÉRICO ────────────────────────────────────────────────────────
+// ─── FALLBACK GENÉRICO (VIAJE DE LUJO A PLAYA EXÓTICA) ──────────────────────────────────
 function buildGenericFallback(destination, days) {
-  let destName = destination.trim();
-  if (destName.length > 20) {
-    const match = destName.match(/^[a-zA-ZÀ-ÿ]+/);
-    destName = match ? match[0] : 'Europa';
-    destName = capitalizeFirst(destName) + ' y alrededores';
-  } else {
-    destName = capitalizeFirst(destName);
-  }
+  let destName = destination.trim() || 'Bali';
 
   const generatedItinerary = [];
   for (let i = 1; i <= days; i++) {
     if (i === 1) {
       generatedItinerary.push({
-        day: 1, place: `${destName} - Llegada`, emoji: '✈️',
+        day: 1, place: `Llegada a ${destName} y Relax`, emoji: '🌴',
         slots: [
-          { type: '🥐 Desayuno', title: 'Llegada y café', desc: 'Aterrizaje', link: `https://www.google.com/maps/search/?api=1&query=aeropuerto+${destName}` },
-          { type: '📸 Mañana', title: 'Check-in', desc: 'Instálate', link: '#' },
-          { type: '🍝 Comida', title: 'Restaurante Local', desc: 'Gastronomía típica', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+${destName}` },
-          { type: '🚶 Tarde', title: 'Paseo inicial', desc: 'Toma el pulso', link: `https://www.google.com/maps/search/?api=1&query=centro+${destName}` },
-          { type: '🍷 Cena', title: 'Primera Cena', desc: 'Platos típicos', link: `https://www.google.com/maps/search/?api=1&query=cenar+${destName}` },
-          { type: '🍹 Copas', title: 'Bar Local', desc: 'Relájate', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` }
+          { type: '🥐 Desayuno', title: 'Bowl Tropical en la playa', desc: 'Acai y coco fresco', link: '#' },
+          { type: '📸 Mañana', title: 'Check-in Resort 5★', desc: 'Instálate en tu villa', link: '#' },
+          { type: '☕ Café', title: 'Café frente al mar', desc: 'Relájate escuchando las olas', link: '#' },
+          { type: '🍝 Comida', title: 'Beach Club Local', desc: 'Pescado fresco y vistas', link: '#' },
+          { type: '🚶 Tarde', title: 'Primer baño en el mar', desc: 'Aguas cristalinas', link: '#' },
+          { type: '🍷 Cena', title: 'Cena a la luz de las velas', desc: 'Restaurante en la arena', link: '#' },
+          { type: '🍹 Copas', title: 'Sunset Lounge', desc: 'Cócteles de autor', link: '#' }
         ],
-        tip: 'Tómatelo con calma.'
+        tip: 'Tómatelo con calma el primer día, hidrátate bien y disfruta de la brisa marina.'
       });
     } else {
       generatedItinerary.push({
-        day: i, place: `Explorando ${destName}`, emoji: '🗺️',
+        day: i, place: `Explorando el Paraíso`, emoji: '🌊',
         slots: [
-          { type: '🥐 Desayuno', title: 'Café histórico', desc: 'Desayuno', link: `https://www.google.com/maps/search/?api=1&query=cafe+${destName}` },
-          { type: '📸 Mañana', title: 'Visita principal', desc: 'Monumentos', link: `https://www.google.com/maps/search/?api=1&query=monumentos+${destName}` },
-          { type: '☕ Café', title: 'Parada dulce', desc: 'Descanso', link: `https://www.google.com/maps/search/?api=1&query=dulces+${destName}` },
-          { type: '🍝 Comida', title: 'Sitio recomendado', desc: 'Auténtico', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+${destName}` },
-          { type: '🚶 Tarde', title: 'Barrio secreto', desc: 'Cultura', link: `https://www.google.com/maps/search/?api=1&query=museos+${destName}` },
-          { type: '🍷 Cena', title: 'Trattoria / Taberna', desc: 'Cena top', link: `https://www.google.com/maps/search/?api=1&query=cenar+${destName}` },
-          { type: '🍹 Copas', title: 'Coctelería', desc: 'Vistas', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` }
+          { type: '🥐 Desayuno', title: 'Desayuno Flotante', desc: 'En la piscina privada', link: '#' },
+          { type: '📸 Mañana', title: 'Excursión en Catamarán', desc: 'Snorkel en arrecifes', link: '#' },
+          { type: '☕ Café', title: 'Parada en Isla Virgen', desc: 'Coco loco en la arena', link: '#' },
+          { type: '🍝 Comida', title: 'Barbacoa de marisco', desc: 'Directo del pescador', link: '#' },
+          { type: '🚶 Tarde', title: 'Masaje Balinés', desc: 'Spa con vistas al mar', link: '#' },
+          { type: '🍷 Cena', title: 'Fine Dining Exótico', desc: 'Fusión asiática-local', link: '#' },
+          { type: '🍹 Copas', title: 'Fiesta en la playa', desc: 'Música en directo', link: '#' }
         ],
-        tip: 'Usa transporte público.'
+        tip: 'No olvides crema solar biodegradable y tu mejor bañador.'
       });
     }
   }
 
   return {
-    destination: destName, flag: '🌍', cover: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80',
-    days, companions: 'Tu grupo', vibe: 'Aventura',
-    budget: { total: '800–1.500€', flights: '~400€', hotel: '~60€/noche', daily: '~40€/día' },
-    weather: { temp: '20°C - 26°C', icon: '🌤️', text: 'Agradable' },
-    bestTime: 'Primavera u Otoño',
+    destination: destName, flag: '🥥', cover: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=1200&q=80',
+    days, companions: 'Tu pareja o amigos', vibe: 'Lujo y Relax',
+    budget: { total: '2.500€', flights: '~800€', hotel: '~150€/noche', daily: '~100€/día' },
+    weather: { temp: '28°C - 32°C', icon: '☀️', text: 'Tropical' },
+    bestTime: 'Todo el año',
     flights: [
-      { airline: 'Google Flights', price: 'Ver', route: `Hacia ${destName}`, duration: '-', link: `https://www.google.com/travel/flights?q=vuelos+a+${destName}` }
+      { airline: 'Emirates / Qatar', price: 'Ver options', route: `Hacia ${destName}`, duration: '14h', link: `https://www.google.com/travel/flights?q=vuelos+a+${destName}` }
     ],
     hotels: [
-      { name: `Hoteles en ${destName}`, stars: '★★★★★', price: 'Ver', vibe: 'Lujo', link: `https://www.booking.com/searchresults.es.html?ss=${destName}` }
+      { name: `Resort & Spa en ${destName}`, stars: '★★★★★', price: 'Ver', vibe: 'Luxury', link: `https://www.booking.com/searchresults.es.html?ss=${destName}` }
     ],
     itinerary: generatedItinerary,
-    secretItinerary: [ { day: '1-2', place: 'Ruta Secreta', emoji: '🔒', highlight: 'Exclusivo Plus' } ]
+    secretItinerary: [ { day: '1-3', place: 'Playa Secreta Privada', emoji: '🤫', highlight: 'Solo accesible en barco. Paraíso virgen sin turistas.' } ]
   };
 }
 
