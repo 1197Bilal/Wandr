@@ -46,8 +46,8 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
     }
   };
 
-  const freeSteps = currentPlan.itinerary.slice(0, 2);
-  const lockedSteps = currentPlan.itinerary.slice(2);
+  const freeSteps = currentPlan.itinerary.slice(0, 1);
+  const lockedSteps = currentPlan.itinerary.slice(1);
 
   return (
     <div className="tp-overlay" onClick={onClose}>
@@ -57,10 +57,10 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
         {showPremiumLock && (
           <div className="tp-premium-lock-modal">
             <div className="tp-premium-lock-content">
-              <h3>👑 Desbloquea {showPremiumLock}</h3>
-              <p>Esta función es exclusiva para miembros de Wandr Plus. Únete a la comunidad PRO y lleva tus viajes al siguiente nivel.</p>
-              <button className="tp-premium-lock-btn" onClick={() => setShowPremiumLock(false)}>Pasarme a Plus →</button>
-              <button className="tp-premium-lock-close" onClick={() => setShowPremiumLock(false)}>Quizás luego</button>
+              <h3>👑 Acceso Denegado</h3>
+              <p>Estás intentando usar <strong>{showPremiumLock}</strong>, una función exclusiva de Wandr Plus. La mayoría de viajeros ahorran 200€ por viaje usando estas herramientas profesionales. ¿Vas a seguir perdiendo el tiempo y el dinero?</p>
+              <button className="tp-premium-lock-btn" onClick={() => setShowPremiumLock(false)} style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white'}}>Hazte PRO por 4,99€/mes →</button>
+              <button className="tp-premium-lock-close" onClick={() => setShowPremiumLock(false)}>Seguiré perdiendo tiempo</button>
             </div>
           </div>
         )}
@@ -145,21 +145,17 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                   </div>
 
                   <div className="tp-day-slots">
-                    {[
-                      { time: '🌅 Mañana', data: step.morning },
-                      { time: '☀️ Tarde', data: step.afternoon },
-                      { time: '🌙 Noche', data: step.evening },
-                    ].map((slot, si) => slot.data && (
+                    {step.slots?.map((slot, si) => (
                       <div key={si} className="tp-slot">
-                        <span className="tp-slot__time">{slot.time}</span>
+                        <span className="tp-slot__time">{slot.type}</span>
                         <div className="tp-slot__content">
                           <div className="tp-slot__title-row">
-                            <strong className="tp-slot__title">{slot.data.title}</strong>
-                            <a href={slot.data.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn">
+                            <strong className="tp-slot__title">{slot.title}</strong>
+                            <a href={slot.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn">
                               📍 Ver en Maps
                             </a>
                           </div>
-                          <p className="tp-slot__desc">{slot.data.desc}</p>
+                          <p className="tp-slot__desc">{slot.desc}</p>
                         </div>
                       </div>
                     ))}
@@ -186,8 +182,8 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                           </div>
                         </div>
                         <div className="tp-day-slots">
-                          <div className="tp-slot"><span className="tp-slot__time">🌅 Mañana</span><div className="tp-slot__content"><strong>{step.morning?.title}</strong><p>{step.morning?.desc}</p></div></div>
-                          <div className="tp-slot"><span className="tp-slot__time">☀️ Tarde</span><div className="tp-slot__content"><strong>{step.afternoon?.title}</strong><p>{step.afternoon?.desc}</p></div></div>
+                          <div className="tp-slot"><span className="tp-slot__time">{step.slots?.[0]?.type || '🌅'}</span><div className="tp-slot__content"><strong>{step.slots?.[0]?.title}</strong><p>{step.slots?.[0]?.desc}</p></div></div>
+                          <div className="tp-slot"><span className="tp-slot__time">{step.slots?.[1]?.type || '☀️'}</span><div className="tp-slot__content"><strong>{step.slots?.[1]?.title}</strong><p>{step.slots?.[1]?.desc}</p></div></div>
                         </div>
                       </div>
                     ))}
@@ -195,10 +191,10 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                   <div className="tp-paywall__gradient" />
                   <div className="tp-paywall__cta">
                     <span className="tp-paywall__lock">🔒</span>
-                    <h3 className="tp-paywall__title">+{lockedSteps.length} días más en este viaje</h3>
-                    <p className="tp-paywall__sub">Desbloquea el plan completo hora a hora, los mejores restaurantes y mapas offline con <strong>Wandr Plus</strong>.</p>
-                    <a href="#pricing" onClick={onClose} className="tp-paywall__btn">Desbloquear por 4,99€/mes →</a>
-                    <span className="tp-paywall__hint">7 días gratis · Cancela cuando quieras</span>
+                    <h3 className="tp-paywall__title">⚠️ Plan bloqueado: +{lockedSteps.length} días ocultos</h3>
+                    <p className="tp-paywall__sub">Los viajeros premium ahorran de media 12 horas de búsqueda. ¿Vas a improvisar y perderte los mejores sitios? Desbloquea el plan hora a hora, los restaurantes secretos y la guía offline ahora mismo con <strong>Wandr Plus</strong>.</p>
+                    <a href="#pricing" onClick={onClose} className="tp-paywall__btn" style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white'}}>Desbloquear por solo 4,99€/mes →</a>
+                    <span className="tp-paywall__hint">Empieza con 7 días gratis. No dejes que tu viaje sea "uno más".</span>
                   </div>
                 </div>
               )}
@@ -225,10 +221,10 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
               {!isPremium && (
                 <div className="tp-paywall__cta">
                   <span className="tp-paywall__lock">🗝️</span>
-                  <h3 className="tp-paywall__title">Ruta Secreta: Lo que los locales no cuentan</h3>
-                  <p className="tp-paywall__sub">Restaurantes sin guías, rutas alternativas y experiencias únicas. Solo <strong>Wandr Plus</strong>.</p>
-                  <a href="#pricing" onClick={onClose} className="tp-paywall__btn">Descubrir por 4,99€/mes →</a>
-                  <span className="tp-paywall__hint">7 días gratis · Cancela cuando quieras</span>
+                  <h3 className="tp-paywall__title">🔥 Ruta Secreta: Lo que los guías te ocultan</h3>
+                  <p className="tp-paywall__sub">Mientras los turistas hacen colas de 2 horas, los usuarios Pro comen en los restaurantes locales reales y entran por las puertas traseras. No seas un guiri más. Sé <strong>Wandr Plus</strong>.</p>
+                  <a href="#pricing" onClick={onClose} className="tp-paywall__btn" style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white'}}>Ver secretos por 4,99€/mes →</a>
+                  <span className="tp-paywall__hint">O prueba gratis y míralo ahora.</span>
                 </div>
               )}
             </div>

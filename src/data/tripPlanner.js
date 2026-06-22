@@ -57,58 +57,54 @@ export async function generateTripPlan(destination, dates, answers) {
   }
 
   const prompt = `
-Eres el mejor asesor de viajes de lujo del mundo. Diseña el viaje de los sueños.
-Petición inicial: "${destination}"
-Fechas exactas: ${dates.start} al ${dates.end} (${days} días)
-Respuestas del usuario para personalizar el plan:
-1. ${answers[0]}
-2. ${answers[1]}
-3. ${answers[2]}
+Eres un asesor de viajes experto. Genera un viaje hiper-optimizado (pocas palabras, máximo valor) para "${destination}".
+Fechas: ${dates.start} a ${dates.end} (${days} días).
+Filtros: ${answers.join(', ')}.
 
-INSTRUCCIONES CRÍTICAS DE ENLACES:
-1. Usa nombres de RESTAURANTES Y LUGARES REALES.
-2. Link Google Maps para lugares: "https://www.google.com/maps/search/?api=1&query=[Lugar+[Ciudad]"
-3. Link Vuelos (DEBE incluir fechas exactas YYYY-MM-DD): "https://www.google.com/travel/flights?q=Flights+to+[Ciudad]+from+${dates.start}+to+${dates.end}"
-4. Link Booking (DEBE incluir fechas exactas YYYY-MM-DD): "https://www.booking.com/searchresults.es.html?ss=[Ciudad]&checkin=${dates.start}&checkout=${dates.end}"
+REGLAS ESTRICTAS (AHORRA TOKENS):
+1. Cero descripciones largas. Usa 3-5 palabras máx por descripción.
+2. Nombres REALES de restaurantes, cafés y bares obligatorios.
+3. Link Maps: "https://www.google.com/maps/search/?api=1&query=[Lugar+[Ciudad]"
+4. Vuelos/Booking: Usa las fechas exactas proporcionadas.
 
-Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
+Devuelve ESTE JSON EXACTO (sin markdown, solo JSON raw):
 {
-  "destination": "Nombre comercial del viaje",
+  "destination": "Ciudad/País",
   "flag": "Emoji",
-  "cover": "URL Unsplash (ej. https://images.unsplash.com/photo-...)",
+  "cover": "URL Unsplash HD",
   "days": ${days},
-  "companions": "Extraído de sus respuestas",
-  "vibe": "Extraído de sus respuestas",
-  "budget": { "total": "Ej. 1.200€", "flights": "Ej. 250€", "hotel": "Ej. 80€/noche", "daily": "Ej. 60€/día" },
-  "weather": { "temp": "Ej. 22°C - 28°C", "icon": "☀️", "text": "Soleado" },
-  "bestTime": "Fechas elegidas",
+  "companions": "Extraído",
+  "vibe": "Extraído",
+  "budget": { "total": "1200€", "flights": "250€", "hotel": "80€/n", "daily": "60€/d" },
+  "weather": { "temp": "22°C", "icon": "☀️", "text": "Sol" },
+  "bestTime": "Meses",
   "flights": [
-     { "airline": "Google Flights (Recomendado)", "price": "Ver opciones", "route": "Fechas exactas", "duration": "Vuelos a destino", "link": "https://www.google.com/travel/flights?q=Flights+to+[Ciudad]+from+${dates.start}+to+${dates.end}" },
-     { "airline": "Skyscanner", "price": "Comparar", "route": "Otras opciones", "duration": "Buscador", "link": "https://www.skyscanner.es/" },
-     { "airline": "Kiwi", "price": "Rutas baratas", "route": "Low-cost", "duration": "Buscador", "link": "https://www.kiwi.com/" }
+     { "airline": "Google Flights", "price": "Ver", "route": "Ida y Vuelta", "duration": "-", "link": "https://www.google.com/travel/flights?q=Flights+to+[Dest]+from+${dates.start}+to+${dates.end}" }
   ],
   "hotels": [
-     { "name": "Nombre de Hotel Premium Real", "stars": "★★★★★", "price": "Precio aprox", "vibe": "Lujo", "link": "https://www.booking.com/searchresults.es.html?ss=[Ciudad]&checkin=${dates.start}&checkout=${dates.end}" },
-     { "name": "Nombre Hotel Boutique Real", "stars": "★★★★", "price": "Precio aprox", "vibe": "Boutique", "link": "https://www.booking.com/searchresults.es.html?ss=[Ciudad]&checkin=${dates.start}&checkout=${dates.end}" },
-     { "name": "Alojamiento Económico Real", "stars": "★★★", "price": "Precio aprox", "vibe": "Económico", "link": "https://www.booking.com/searchresults.es.html?ss=[Ciudad]&checkin=${dates.start}&checkout=${dates.end}" }
+     { "name": "Hotel Lujo", "stars": "5★", "price": "$$$", "vibe": "Premium", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" },
+     { "name": "Hotel Medio", "stars": "4★", "price": "$$", "vibe": "Boutique", "link": "https://www.booking.com/searchresults.es.html?ss=[Dest]&checkin=${dates.start}&checkout=${dates.end}" }
   ],
   "itinerary": [
-    // EXACTAMENTE ${days} objetos (días 1 al ${days}).
+    // Array de ${days} días EXACTOS. Cada día debe tener estas claves:
     {
       "day": 1,
-      "place": "Zona específica",
-      "emoji": "Emoji",
-      "morning": { "title": "Desayuno en [Cafetería Real] y visita", "desc": "Detalles", "link": "https://www.google.com/maps/search/?api=1&query=[Lugar]" },
-      "afternoon": { "title": "Comida en [Restaurante Real]", "desc": "Detalles", "link": "https://www.google.com/maps/search/?api=1&query=[Lugar]" },
-      "evening": { "title": "Cena en [Restaurante Real]", "desc": "Detalles", "link": "https://www.google.com/maps/search/?api=1&query=[Lugar]" },
-      "tip": "Consejo local"
+      "place": "Zona",
+      "emoji": "📍",
+      "slots": [
+        { "type": "🥐 Desayuno", "title": "Café en [Local Real]", "desc": "Especialidad local", "link": "URL Maps" },
+        { "type": "📸 Mañana", "title": "[Monumento]", "desc": "Visita principal", "link": "URL Maps" },
+        { "type": "☕ Café", "title": "Descanso en [Cafetería]", "desc": "Café de especialidad", "link": "URL Maps" },
+        { "type": "🍝 Comida", "title": "[Restaurante]", "desc": "Plato típico", "link": "URL Maps" },
+        { "type": "🚶 Tarde", "title": "[Lugar/Barrio]", "desc": "Paseo", "link": "URL Maps" },
+        { "type": "🍷 Cena", "title": "[Restaurante/Trattoria]", "desc": "Cena top", "link": "URL Maps" },
+        { "type": "🍹 Copas", "title": "Cócteles en [Bar]", "desc": "Vida nocturna", "link": "URL Maps" }
+      ],
+      "tip": "Tip"
     }
   ],
-  "secretItinerary": [
-    { "day": "1-2", "place": "Secreto local", "emoji": "🤫", "highlight": "Algo increíble" }
-  ]
-}
-`;
+  "secretItinerary": [ { "day": "1", "place": "Lugar Oculto", "emoji": "🤫", "highlight": "Secreto" } ]
+}`;
 
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
@@ -192,17 +188,28 @@ function buildGenericFallback(destination, days) {
     if (i === 1) {
       generatedItinerary.push({
         day: 1, place: `${destName} - Llegada`, emoji: '✈️',
-        morning:   { title: 'Llegada y check-in', desc: 'Instálate.', link: `https://www.google.com/maps/search/?api=1&query=aeropuerto+${destName}` },
-        afternoon: { title: 'Paseo de reconocimiento', desc: 'Explora.', link: `https://www.google.com/maps/search/?api=1&query=centro+${destName}` },
-        evening:   { title: 'Primera cena local', desc: 'Gastronomía típica.', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+tradicionales+${destName}` },
+        slots: [
+          { type: '🥐 Desayuno', title: 'Llegada y café', desc: 'Aterrizaje', link: `https://www.google.com/maps/search/?api=1&query=aeropuerto+${destName}` },
+          { type: '📸 Mañana', title: 'Check-in', desc: 'Instálate', link: '#' },
+          { type: '🍝 Comida', title: 'Restaurante Local', desc: 'Gastronomía típica', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+${destName}` },
+          { type: '🚶 Tarde', title: 'Paseo inicial', desc: 'Toma el pulso', link: `https://www.google.com/maps/search/?api=1&query=centro+${destName}` },
+          { type: '🍷 Cena', title: 'Primera Cena', desc: 'Platos típicos', link: `https://www.google.com/maps/search/?api=1&query=cenar+${destName}` },
+          { type: '🍹 Copas', title: 'Bar Local', desc: 'Relájate', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` }
+        ],
         tip: 'Tómatelo con calma.'
       });
     } else {
       generatedItinerary.push({
         day: i, place: `Explorando ${destName}`, emoji: '🗺️',
-        morning:   { title: 'Visita principal', desc: 'Monumentos.', link: `https://www.google.com/maps/search/?api=1&query=monumentos+${destName}` },
-        afternoon: { title: 'Experiencia cultural', desc: 'Museos.', link: `https://www.google.com/maps/search/?api=1&query=museos+${destName}` },
-        evening:   { title: 'Noche en la ciudad', desc: 'Cena tradicional.', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` },
+        slots: [
+          { type: '🥐 Desayuno', title: 'Café histórico', desc: 'Desayuno', link: `https://www.google.com/maps/search/?api=1&query=cafe+${destName}` },
+          { type: '📸 Mañana', title: 'Visita principal', desc: 'Monumentos', link: `https://www.google.com/maps/search/?api=1&query=monumentos+${destName}` },
+          { type: '☕ Café', title: 'Parada dulce', desc: 'Descanso', link: `https://www.google.com/maps/search/?api=1&query=dulces+${destName}` },
+          { type: '🍝 Comida', title: 'Sitio recomendado', desc: 'Auténtico', link: `https://www.google.com/maps/search/?api=1&query=restaurantes+${destName}` },
+          { type: '🚶 Tarde', title: 'Barrio secreto', desc: 'Cultura', link: `https://www.google.com/maps/search/?api=1&query=museos+${destName}` },
+          { type: '🍷 Cena', title: 'Trattoria / Taberna', desc: 'Cena top', link: `https://www.google.com/maps/search/?api=1&query=cenar+${destName}` },
+          { type: '🍹 Copas', title: 'Coctelería', desc: 'Vistas', link: `https://www.google.com/maps/search/?api=1&query=bares+${destName}` }
+        ],
         tip: 'Usa transporte público.'
       });
     }

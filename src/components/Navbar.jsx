@@ -40,7 +40,7 @@ export default function Navbar({ activeSection, user, onLoginClick, onLogoutClic
         ) : (
           <>
             <button className="btn btn-ghost navbar__signin" onClick={onLoginClick} id="nav-signin">Entrar</button>
-            <button className="btn btn-primary navbar__cta" onClick={onLoginClick} id="nav-signup">Únete gratis</button>
+            <button className="btn btn-primary navbar__cta" onClick={onLoginClick} id="nav-signup" style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white', border: 'none'}}>Wandr Plus 👑</button>
           </>
         )}
         
