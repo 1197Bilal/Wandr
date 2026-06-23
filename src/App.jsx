@@ -30,12 +30,14 @@ export default function App() {
           email: currentUser.email,
           photoURL: currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName || currentUser.email}&background=random`
         });
+        // Sync email for premium whitelist check
+        localStorage.setItem('wandr_user_email', currentUser.email || '');
       } else {
         setUser(null);
+        localStorage.removeItem('wandr_user_email');
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
