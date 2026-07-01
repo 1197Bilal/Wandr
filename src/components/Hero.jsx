@@ -31,6 +31,7 @@ export default function Hero() {
 
   const handleStartAnalysis = async () => {
     if (!destination.trim()) return;
+    setPlan(null); // Clear previous plan
     setStep(2);
     try {
       const q = await generateQuestions(destination);

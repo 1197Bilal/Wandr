@@ -58,6 +58,25 @@
 /* Body */
 .tp-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
 
+/* Day Navigation */
+.tp-day-nav {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.tp-day-nav::-webkit-scrollbar { height: 4px; }
+.tp-day-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+.tp-day-nav-btn {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: #aaa; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s;
+}
+.tp-day-nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.tp-day-nav-btn--active {
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  border-color: rgba(255,107,53,0.5); color: #fff;
+  box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+}
+
 /* Day Cards */
 .tp-day-card { border-radius: 16px; overflow: hidden; }
 .glass-strong { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }

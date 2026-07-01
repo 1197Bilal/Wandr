@@ -8,6 +8,7 @@ const PREMIUM_EMAILS = ['elhspm1@gmail.com'];
 export default function TripPlan({ plan: initialPlan, onClose }) {
   const [currentPlan, setCurrentPlan] = useState(initialPlan);
   const [tab, setTab] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(1);
   const [editPrompt, setEditPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [showPremiumLock, setShowPremiumLock] = useState(false);
@@ -94,14 +95,18 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           <h3 className="tp-section-title">✈️ Opciones de vuelo</h3>
           <div className="tp-options-grid">
             {currentPlan.flights?.map((f, i) => (
-              <a key={i} href={f.link} target="_blank" rel="noopener noreferrer" className="tp-option-card tp-option-card--flight">
+              <div 
+                key={i} 
+                onClick={() => window.open(f.link, '_blank', 'noopener,noreferrer')} 
+                className="tp-option-card tp-option-card--flight"
+              >
                 <div className="tp-option-card__top">
                   <span className="tp-option-card__name">{f.airline}</span>
                   <span className="tp-option-card__price">{f.price}</span>
                 </div>
                 <div className="tp-option-card__sub">{f.route} · {f.duration}</div>
                 <span className="tp-option-card__cta">Ver vuelos →</span>
-              </a>
+              </div>
             ))}
           </div>
         </div>
@@ -111,14 +116,18 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           <h3 className="tp-section-title">🏨 Opciones de alojamiento</h3>
           <div className="tp-options-grid">
             {currentPlan.hotels?.map((h, i) => (
-              <a key={i} href={h.link} target="_blank" rel="noopener noreferrer" className="tp-option-card tp-option-card--hotel">
+              <div 
+                key={i} 
+                onClick={() => window.open(h.link, '_blank', 'noopener,noreferrer')} 
+                className="tp-option-card tp-option-card--hotel"
+              >
                 <div className="tp-option-card__top">
                   <span className="tp-option-card__name">{h.name}</span>
                   <span className="tp-option-card__price">{h.price}</span>
                 </div>
                 <div className="tp-option-card__sub">{h.stars} · {h.vibe}</div>
                 <span className="tp-option-card__cta">Ver en Booking →</span>
-              </a>
+              </div>
             ))}
           </div>
         </div>
@@ -135,7 +144,22 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           {/* TAB 1: Ruta Estándar */}
           {tab === 0 && (
             <>
-              {visibleSteps.map((step, idx) => (
+              {/* Day Navigation */}
+              {visibleSteps.length > 1 && (
+                <div className="tp-day-nav">
+                  {visibleSteps.map((step, idx) => (
+                    <button 
+                      key={idx} 
+                      className={`tp-day-nav-btn ${selectedDay === step.day ? 'tp-day-nav-btn--active' : ''}`}
+                      onClick={() => setSelectedDay(step.day)}
+                    >
+                      Día {step.day}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {visibleSteps.filter(s => visibleSteps.length === 1 || s.day === selectedDay).map((step, idx) => (
                 <div key={idx} className={`tp-day-card glass-strong${step.isSpecial ? ' tp-day-card--special' : ''}`}>
                   <div className="tp-day-header">
                     <span className="tp-day-emoji">{step.emoji}</span>
@@ -159,9 +183,12 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                               {slot.time && <span className="tp-slot__time-label">{slot.time}</span>}
                             </div>
                             {slot.link && slot.link !== '#' && (
-                              <a href={slot.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); window.open(slot.link, '_blank', 'noopener,noreferrer'); }} 
+                                className="tp-slot__map-btn"
+                              >
                                 📍 Ver en Maps
-                              </a>
+                              </button>
                             )}
                           </div>
                           <p className="tp-slot__desc">{slot.desc}</p>
@@ -241,9 +268,13 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                     </div>
                     <p style={{ color: '#ccc', padding: '0 20px 20px', lineHeight: 1.6 }}>{step.highlight}</p>
                     {step.link && (
-                      <a href={step.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn" style={{ margin: '0 20px 20px' }}>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); window.open(step.link, '_blank', 'noopener,noreferrer'); }} 
+                        className="tp-slot__map-btn" 
+                        style={{ margin: '0 20px 20px', display: 'inline-block' }}
+                      >
                         📍 Ver en Maps
-                      </a>
+                      </button>
                     )}
                   </div>
                 ))
