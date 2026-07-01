@@ -54,7 +54,8 @@ REGLAS CRÍTICAS:
 7. "destination": título corto (máx 5 palabras, NUNCA la petición literal del usuario).
 8. Links Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+CIUDAD (espacios → +)
 9. Links vuelos Skyscanner: https://www.skyscanner.es/vuelos/IATA_ORIGEN/IATA_DESTINO/ (ej: /mad/cag/)
-10. Links Booking: https://www.booking.com/searchresults.html?ss=CIUDAD&checkin=${dates.start}&checkout=${dates.end}&group_adults=2
+10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL+CIUDAD&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa el nombre del hotel en el parámetro ss, ej: ss=Grand+Hotel+Vesuvio+Napoles)
+11. Vuelos multi-destino: si hay vuelos intermedios, calcula la fecha exacta sumando los días correspondientes desde el inicio (${dates.start}) para ponerla en la descripción o enlace del vuelo.
 
 Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después):
 {
@@ -73,8 +74,8 @@ Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después):
     { "airline": "Vueling", "price": "~140€/persona", "route": "NAP → MAD", "duration": "2h50", "link": "https://www.skyscanner.es/vuelos/nap/mad/" }
   ],
   "hotels": [
-    { "name": "T Hotel Cagliari", "stars": "4★", "price": "$$", "vibe": "Diseño, piscina, romántico", "link": "https://www.booking.com/searchresults.html?ss=Cagliari&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" },
-    { "name": "Grand Hotel Vesuvio", "stars": "5★", "price": "$$$", "vibe": "Lujo frente al mar", "link": "https://www.booking.com/searchresults.html?ss=Napoles&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
+    { "name": "T Hotel Cagliari", "stars": "4★", "price": "$$", "vibe": "Diseño, piscina, romántico", "link": "https://www.booking.com/searchresults.html?ss=T+Hotel+Cagliari&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" },
+    { "name": "Grand Hotel Vesuvio", "stars": "5★", "price": "$$$", "vibe": "Lujo frente al mar", "link": "https://www.booking.com/searchresults.html?ss=Grand+Hotel+Vesuvio+Napoles&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
   ],
   "itinerary": [
     {
@@ -139,15 +140,22 @@ export async function editTripPlan(currentPlanJSON, userEditRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `Edita este itinerario JSON según la petición. Mantén todos los campos, solo cambia lo solicitado.\nJSON: ${JSON.stringify(currentPlanJSON)}\nCambio: "${userEditRequest}"\nDevuelve SOLO el JSON completo sin markdown.` }] }],
+        contents: [{ parts: [{ text: `Edita este itinerario JSON según la petición. Mantén TODOS los campos y la estructura exacta, solo cambia lo solicitado en el interior.\nJSON original: ${JSON.stringify(currentPlanJSON)}\nCambio solicitado: "${userEditRequest}"\nCRÍTICO: Devuelve ÚNICAMENTE el JSON actualizado sin bloques de código markdown (\`\`\`), sin comentarios, y que sea 100% válido para JSON.parse().` }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 16000, responseMimeType: 'application/json' }
       })
     }
   );
   if (!res.ok) throw new Error('API Error');
   const data = await res.json();
-  let text = data.candidates[0].content.parts[0].text.replace(/```json\n?|```\n?/g, '').trim();
-  return JSON.parse(text);
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  text = text.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+  
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("Failed to parse edited JSON:", text);
+    throw err;
+  }
 }
 
 function calculateDays(start, end) {
