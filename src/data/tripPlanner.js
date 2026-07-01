@@ -51,12 +51,13 @@ REGLAS CRÍTICAS:
 4. Nombres REALES de cada sitio (restaurante, playa, bar, monumento). NADA genérico.
 5. Adapta el MOOD: si pide "chill", el itinerario es relajado (playitas, aperitivos, no masas). Si pide "romantico", reserva restaurantes con vistas/atardecer.
 6. Si hay una petición especial (cena romántica de sorpresa, excursión específica), ponla en el día concreto con campo "isSpecial: true" en ese día.
+7. FILTRO SEMÁNTICO: Identifica el destino real (país o ciudad) introducido. Ignora palabras como "dinero", "barato", "lujo" a la hora de nombrar el destino, úsalas SOLO para adaptar el presupuesto y tipo de hoteles. NUNCA inventes destinos, extrae el real.
 10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa SOLO el nombre del hotel en el parámetro ss, reemplazando espacios por +)
 11. Vuelos multi-destino: si hay vuelos intermedios, calcula la fecha exacta sumando los días correspondientes desde el inicio (${dates.start}) para ponerla en la descripción o enlace del vuelo.
 
-Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después):
+Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después). Usa el destino real del usuario, NO copies el de este ejemplo:
 {
-  "destination": "Cerdeña y Nápoles",
+  "destination": "Nombre del Destino Extraído",
   "flag": "🇮🇹",
   "cover": "https://images.unsplash.com/photo-1553697388-94e804e2f0f6?w=1200&q=80",
   "days": ${days},
