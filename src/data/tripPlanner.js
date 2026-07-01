@@ -53,49 +53,42 @@ REGLAS CRÍTICAS:
 6. Si hay una petición especial (cena romántica de sorpresa, excursión específica), ponla en el día concreto con campo "isSpecial: true" en ese día.
 7. FILTRO SEMÁNTICO: Identifica el destino real (país o ciudad) introducido. Ignora palabras como "dinero", "barato", "lujo" a la hora de nombrar el destino.
 8. COHERENCIA GEOGRÁFICA Y CULTURAL ABSOLUTA: Prohibido mezclar ciudades, países o continentes. Todo el contenido (hoteles, playas, comida, vuelos) debe ser estrictamente del destino elegido y logísticamente posible.
+9. CRÍTICO: Debes generar exactamente el número de días solicitados: ${days} días. Ni uno menos ni uno más.
 10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa SOLO el nombre del hotel en el parámetro ss, reemplazando espacios por +)
 11. Vuelos multi-destino: si hay vuelos intermedios, calcula la fecha exacta sumando los días correspondientes desde el inicio (${dates.start}) para ponerla en la descripción o enlace del vuelo.
 
-Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después). Usa el destino real del usuario, NO copies el de este ejemplo:
+Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después). El JSON de abajo es SOLO UN EJEMPLO DE ESTRUCTURA. DEBES rellenarlo con datos reales del destino:
 {
-  "destination": "Nombre del Destino Extraído",
-  "flag": "🇮🇹",
+  "destination": "Nombre del Destino Real",
+  "flag": "🌍",
   "cover": "https://images.unsplash.com/photo-1553697388-94e804e2f0f6?w=1200&q=80",
   "days": ${days},
   "companions": "En pareja",
-  "vibe": "Playa chill y gastronomía",
+  "vibe": "El ambiente del viaje",
   "budget": { "total": "2.200€", "flights": "380€", "hotel": "95€/noche", "daily": "75€/día" },
-  "weather": { "temp": "29°C", "icon": "☀️", "text": "Mediterráneo soleado" },
-  "bestTime": "Junio - Septiembre",
+  "weather": { "temp": "29°C", "icon": "☀️", "text": "Clima típico" },
+  "bestTime": "Meses ideales",
   "flights": [
-    { "airline": "Vueling", "price": "~160€/persona", "route": "MAD → CAG", "duration": "2h30", "link": "https://www.skyscanner.es/vuelos/mad/cag/" },
-    { "airline": "Ryanair", "price": "~70€/persona", "route": "CAG → NAP", "duration": "1h10", "link": "https://www.skyscanner.es/vuelos/cag/nap/" },
-    { "airline": "Vueling", "price": "~140€/persona", "route": "NAP → MAD", "duration": "2h50", "link": "https://www.skyscanner.es/vuelos/nap/mad/" }
+    { "airline": "Aerolínea Real", "price": "~160€/persona", "route": "MAD → IATA_DEST", "duration": "xhxx", "link": "https://www.skyscanner.es/vuelos/mad/iata/" }
   ],
   "hotels": [
-    { "name": "T Hotel Cagliari", "stars": "4★", "price": "$$", "vibe": "Diseño, piscina, romántico", "link": "https://www.booking.com/searchresults.html?ss=T+Hotel+Cagliari&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" },
-    { "name": "Grand Hotel Vesuvio", "stars": "5★", "price": "$$$", "vibe": "Lujo frente al mar", "link": "https://www.booking.com/searchresults.html?ss=Grand+Hotel+Vesuvio+Napoles&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
+    { "name": "Nombre Hotel Real 1", "stars": "4★", "price": "$$", "vibe": "Céntrico", "link": "https://www.booking.com/searchresults.html?ss=Nombre+Hotel+Real+1&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
   ],
   "itinerary": [
     {
       "day": 1,
-      "place": "Cagliari – Llegada y primera playa",
+      "place": "Nombre de la ciudad – Llegada",
       "emoji": "🌴",
       "isSpecial": false,
       "slots": [
-        { "type": "🥐 Desayuno", "time": "08:30", "title": "Caffè Svizzero", "desc": "Cornetto integrale y cappuccino cremoso. El más antiguo de la ciudad.", "link": "https://www.google.com/maps/search/?api=1&query=Caffe+Svizzero+Cagliari" },
-        { "type": "📸 Mañana", "time": "10:00", "title": "Bastione di San Remy", "desc": "Vistas panorámicas al golfo de Cagliari. Ideal para fotos.", "link": "https://www.google.com/maps/search/?api=1&query=Bastione+San+Remy+Cagliari" },
-        { "type": "☕ Café", "time": "11:30", "title": "Antico Caffè", "desc": "Pausa en la terraza. El favorito de los locales desde 1855.", "link": "https://www.google.com/maps/search/?api=1&query=Antico+Caffe+Cagliari" },
-        { "type": "🍝 Comida", "time": "13:30", "title": "Trattoria Lillicu", "desc": "Malloreddus al ragù, culurgiones. Cocina sarda auténtica y sin masas.", "link": "https://www.google.com/maps/search/?api=1&query=Trattoria+Lillicu+Cagliari" },
-        { "type": "🏖️ Playa", "time": "15:30", "title": "Spiaggia del Poetto", "desc": "8km de arena fina blanca. Alquila hamacas en el Lido. Agua turquesa.", "link": "https://www.google.com/maps/search/?api=1&query=Spiaggia+del+Poetto+Cagliari" },
-        { "type": "🍷 Cena", "time": "20:30", "title": "Ristorante Dal Corsaro", "desc": "El mejor de Cagliari. Pasta fresca, pescado del día. Pide la bottarga.", "link": "https://www.google.com/maps/search/?api=1&query=Ristorante+Dal+Corsaro+Cagliari" },
-        { "type": "🍹 Copas", "time": "23:00", "title": "Caffè Letterario", "desc": "Cócteles en terraza con vistas al mar. Aperol Spritz obligatorio.", "link": "https://www.google.com/maps/search/?api=1&query=Caffe+Letterario+Cagliari" }
+        { "type": "🥐 Desayuno", "time": "08:30", "title": "Nombre de Cafetería Real", "desc": "Descripción real.", "link": "https://www.google.com/maps/search/?api=1&query=Cafeteria+Real+Ciudad" },
+        { "type": "📸 Mañana", "time": "10:00", "title": "Monumento Real", "desc": "Descripción de la visita.", "link": "https://www.google.com/maps/search/?api=1&query=Monumento+Real+Ciudad" }
       ],
-      "tip": "Reserva Dal Corsaro con 2 días de antelación. Se llena siempre."
+      "tip": "Consejo real para este día."
     }
   ],
   "secretItinerary": [
-    { "day": "3", "place": "Cala Goloritzé", "emoji": "🤫", "highlight": "La cala más espectacular de Cerdeña y de las más bellas de Europa. Solo accesible a pie (2h de ruta entre encinas) o en barco desde Santa Maria Navarrese. Agua turquesa imposible. Ve temprano para evitar los 15 turistas que saben de ella.", "link": "https://www.google.com/maps/search/?api=1&query=Cala+Goloritze+Baunei" }
+    { "day": "3", "place": "Lugar Secreto Real", "emoji": "🤫", "highlight": "Por qué es secreto.", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Secreto+Ciudad" }
   ]
 }
 
