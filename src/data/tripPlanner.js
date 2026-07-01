@@ -166,9 +166,15 @@ function calculateDays(start, end) {
 function buildGenericFallback(destination, days) {
   // Extract a clean destination name from user input
   const words = destination.trim().split(/\s+/);
-  // Pick a word that looks like a city name (capitalized or just the last word if none found)
-  const destName = words.find(w => /^[A-ZÀ-Ÿ]/.test(w) && w.length > 3) || words[words.length - 1] || 'tu destino';
-  const cleanDest = destName.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+  const stopWords = ['quiero','viajar','dias','dinero','barato','caro','poco','mucho','con','para','en','a','el','la','los','las','un','una','muy','ir','visitar'];
+  const possibleDests = words.filter(w => !stopWords.includes(w.toLowerCase()) && w.length > 2 && !/\d/.test(w));
+  
+  // Pick capitalized word, or first non-stopword, or fallback
+  let destName = possibleDests.find(w => /^[A-ZÀ-Ÿ]/.test(w)) || possibleDests[0] || 'tu destino';
+  let cleanDest = destName.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+  cleanDest = cleanDest.charAt(0).toUpperCase() + cleanDest.slice(1).toLowerCase();
+
+  const hotelName = `Hotel Boutique ${cleanDest}`;
 
   const dayTemplates = [
     {
@@ -221,8 +227,6 @@ function buildGenericFallback(destination, days) {
       link: `https://www.google.com/maps/search/?api=1&query=mejor+restaurante+${encodeURIComponent(cleanDest)}`
     };
   }
-
-  const hotelName = `Hotel Boutique ${cleanDest}`;
 
   return {
     destination: `${days} días en ${cleanDest}`,
