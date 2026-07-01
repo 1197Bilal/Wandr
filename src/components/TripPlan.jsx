@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import './TripPlan.css';
 import { editTripPlan } from '../data/tripPlanner';
 
-const TABS = ['🗺️ Ruta Estándar', '🔒 Ruta Secreta'];
+const TABS = ['🗺️ Ruta Estándar', '🤫 Ruta Secreta'];
+const PREMIUM_EMAILS = ['elhspm1@gmail.com'];
 
 export default function TripPlan({ plan: initialPlan, onClose }) {
   const [currentPlan, setCurrentPlan] = useState(initialPlan);
@@ -11,8 +12,7 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showPremiumLock, setShowPremiumLock] = useState(false);
 
-  // Premium whitelist - these emails always get full access
-  const PREMIUM_EMAILS = ['elhspm1@gmail.com'];
+  // Premium check — hardcoded whitelist synced from Firebase auth in App.jsx
   const currentUserEmail = localStorage.getItem('wandr_user_email') || '';
   const isPremium = PREMIUM_EMAILS.includes(currentUserEmail);
 
@@ -21,35 +21,26 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
     return () => { document.body.style.overflow = 'auto'; };
   }, []);
 
-  const handlePremiumAction = (actionName) => {
-    if (!isPremium) {
-      setShowPremiumLock(actionName);
-    } else {
-      alert(`Ejecutando acción premium: ${actionName}`);
-    }
-  };
-
   const handleEditSubmit = async () => {
     if (!editPrompt.trim()) return;
-    if (!isPremium) {
-      setShowPremiumLock("Wandr AI Edit");
-      return;
-    }
-    
+    if (!isPremium) { setShowPremiumLock('Wandr AI Edit'); return; }
     setIsEditing(true);
     try {
       const updatedPlan = await editTripPlan(currentPlan, editPrompt);
       setCurrentPlan(updatedPlan);
       setEditPrompt('');
-    } catch (e) {
-      alert("Error al editar el plan.");
-    } finally {
-      setIsEditing(false);
-    }
+    } catch { alert('Error al editar el plan.'); }
+    finally { setIsEditing(false); }
   };
 
-  const freeSteps = currentPlan.itinerary.slice(0, 1);
-  const lockedSteps = currentPlan.itinerary.slice(1);
+  const handlePremiumAction = (name) => {
+    if (!isPremium) { setShowPremiumLock(name); return; }
+    alert(`Función ${name} disponible próximamente.`);
+  };
+
+  // Premium: all days shown. Free: only day 1
+  const visibleSteps = isPremium ? currentPlan.itinerary : currentPlan.itinerary.slice(0, 1);
+  const lockedSteps  = isPremium ? [] : currentPlan.itinerary.slice(1);
 
   return (
     <div className="tp-overlay" onClick={onClose}>
@@ -59,18 +50,23 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
         {showPremiumLock && (
           <div className="tp-premium-lock-modal">
             <div className="tp-premium-lock-content">
-              <h3>👑 Acceso Denegado</h3>
-              <p>Estás intentando usar <strong>{showPremiumLock}</strong>, una función exclusiva de Wandr Plus. La mayoría de viajeros ahorran 200€ por viaje usando estas herramientas profesionales. ¿Vas a seguir perdiendo el tiempo y el dinero?</p>
-              <button className="tp-premium-lock-btn" onClick={() => setShowPremiumLock(false)} style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white'}}>Hazte PRO por 4,99€/mes →</button>
-              <button className="tp-premium-lock-close" onClick={() => setShowPremiumLock(false)}>Seguiré perdiendo tiempo</button>
+              <h3>👑 Función exclusiva Wandr Plus</h3>
+              <p>Estás intentando usar <strong>{showPremiumLock}</strong>. Los usuarios Pro ahorran una media de <strong>200€ por viaje</strong> con estas herramientas. ¿Vas a quedarte sin ellas?</p>
+              <button className="tp-premium-lock-btn" onClick={() => setShowPremiumLock(false)} style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white' }}>
+                Hazte PRO por 4,99€/mes →
+              </button>
+              <button className="tp-premium-lock-close" onClick={() => setShowPremiumLock(false)}>No gracias, seguiré perdiendo tiempo</button>
             </div>
           </div>
         )}
 
-        {/* Action Bar (Top Right) */}
+        {/* Action Bar */}
         <div className="tp-action-bar">
-          <button className="tp-action-btn" onClick={() => handlePremiumAction("Mapa Offline")}>🗺️ Mapa Offline</button>
-          <button className="tp-action-btn" onClick={() => handlePremiumAction("Exportar a PDF")}>📄 Exportar PDF</button>
+          {isPremium && (
+            <span className="tp-premium-badge">👑 Plan Premium · Acceso Total</span>
+          )}
+          <button className="tp-action-btn" onClick={() => handlePremiumAction('Mapa Offline')}>🗺️ Mapa Offline</button>
+          <button className="tp-action-btn" onClick={() => handlePremiumAction('Exportar PDF')}>📄 Exportar PDF</button>
           <button className="tp-close" onClick={onClose}>✕</button>
         </div>
 
@@ -78,13 +74,16 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
         <div className="tp-cover" style={{ backgroundImage: `url(${currentPlan.cover})` }}>
           <div className="tp-cover__overlay">
             <div className="tp-cover__content">
+              {isPremium && (
+                <div className="tp-cover__premium-pill">👑 Acceso Total · Sin Límites</div>
+              )}
               <span className="tp-flag">{currentPlan.flag}</span>
-              <h2 className="tp-title">{currentPlan.days} días en {currentPlan.destination}</h2>
+              <h2 className="tp-title">{currentPlan.destination}</h2>
               <div className="tp-meta-row">
                 <span className="tp-meta-chip">👥 {currentPlan.companions}</span>
                 <span className="tp-meta-chip">✨ {currentPlan.vibe}</span>
-                <span className="tp-meta-chip">💰 {currentPlan.budget.total}</span>
-                <span className="tp-meta-chip">{currentPlan.weather.icon} {currentPlan.weather.temp}</span>
+                <span className="tp-meta-chip">💰 {currentPlan.budget?.total}</span>
+                <span className="tp-meta-chip">{currentPlan.weather?.icon} {currentPlan.weather?.temp}</span>
               </div>
             </div>
           </div>
@@ -94,7 +93,7 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
         <div className="tp-section">
           <h3 className="tp-section-title">✈️ Opciones de vuelo</h3>
           <div className="tp-options-grid">
-            {currentPlan.flights.map((f, i) => (
+            {currentPlan.flights?.map((f, i) => (
               <a key={i} href={f.link} target="_blank" rel="noopener noreferrer" className="tp-option-card tp-option-card--flight">
                 <div className="tp-option-card__top">
                   <span className="tp-option-card__name">{f.airline}</span>
@@ -111,7 +110,7 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
         <div className="tp-section">
           <h3 className="tp-section-title">🏨 Opciones de alojamiento</h3>
           <div className="tp-options-grid">
-            {currentPlan.hotels.map((h, i) => (
+            {currentPlan.hotels?.map((h, i) => (
               <a key={i} href={h.link} target="_blank" rel="noopener noreferrer" className="tp-option-card tp-option-card--hotel">
                 <div className="tp-option-card__top">
                   <span className="tp-option-card__name">{h.name}</span>
@@ -131,19 +130,22 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           ))}
         </div>
 
-        <div className="tp-body" style={{ paddingBottom: '100px' }}> {/* Space for edit bar */}
-          
+        <div className="tp-body" style={{ paddingBottom: '100px' }}>
+
           {/* TAB 1: Ruta Estándar */}
           {tab === 0 && (
             <>
-              {freeSteps.map((step, idx) => (
-                <div key={idx} className="tp-day-card glass-strong">
+              {visibleSteps.map((step, idx) => (
+                <div key={idx} className={`tp-day-card glass-strong${step.isSpecial ? ' tp-day-card--special' : ''}`}>
                   <div className="tp-day-header">
                     <span className="tp-day-emoji">{step.emoji}</span>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <span className="tp-day-label">Día {step.day}</span>
                       <h4 className="tp-day-place">{step.place}</h4>
                     </div>
+                    {step.isSpecial && (
+                      <span className="tp-day-special-badge">💫 Noche especial</span>
+                    )}
                   </div>
 
                   <div className="tp-day-slots">
@@ -152,7 +154,10 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                         <div className="tp-slot__type-badge">{slot.type}</div>
                         <div className="tp-slot__content">
                           <div className="tp-slot__header">
-                            <strong className="tp-slot__title">{slot.title}</strong>
+                            <div>
+                              <strong className="tp-slot__title">{slot.title}</strong>
+                              {slot.time && <span className="tp-slot__time-label">{slot.time}</span>}
+                            </div>
                             {slot.link && slot.link !== '#' && (
                               <a href={slot.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn">
                                 📍 Ver en Maps
@@ -168,49 +173,55 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                   {step.tip && (
                     <div className="tp-day-tip glass-strong">
                       <span className="tp-day-tip-icon">💡</span>
-                      <p><strong>Tip del viajero experto:</strong> {step.tip}</p>
+                      <p><strong>Tip:</strong> {step.tip}</p>
                     </div>
                   )}
                 </div>
               ))}
 
-              {/* Paywall directly after Day 1 */}
-              {lockedSteps.length > 0 && !isPremium && (
-                <div className="tp-paywall-inline glass-strong">
-                  <span className="tp-paywall__lock">🔒</span>
-                  <h3 className="tp-paywall__title">Desbloquea el Itinerario Completo (+{lockedSteps.length} días)</h3>
-                  <p className="tp-paywall__sub">
-                    No te conformes con lo básico. Los usuarios Pro acceden a los <strong>restaurantes secretos</strong>, <strong>mapas offline</strong> y la <strong>ruta secreta</strong> de los locales.
-                  </p>
-                  <a href="#pricing" onClick={onClose} className="tp-paywall__btn-glow">
-                    Hazte PRO por 4,99€/mes →
-                  </a>
-                  <span className="tp-paywall__hint">Empieza con 7 días gratis. Cancela cuando quieras.</span>
-                </div>
-              )}
+              {/* Paywall — only for free users */}
+              {!isPremium && lockedSteps.length > 0 && (
+                <>
+                  <div className="tp-paywall-inline glass-strong">
+                    <span className="tp-paywall__lock">🔒</span>
+                    <h3 className="tp-paywall__title">Desbloquea los {lockedSteps.length} días restantes</h3>
+                    <p className="tp-paywall__sub">
+                      No te conformes con un día. Los usuarios Pro acceden al itinerario <strong>completo hora a hora</strong>, restaurantes secretos, mapas offline y la ruta de los locales.
+                    </p>
+                    <a href="#pricing" onClick={onClose} className="tp-paywall__btn-glow">
+                      Hazte PRO por 4,99€/mes →
+                    </a>
+                    <span className="tp-paywall__hint">7 días gratis · Cancela cuando quieras</span>
+                  </div>
 
-              {/* Blurred locked steps below */}
-              {lockedSteps.length > 0 && !isPremium && (
-                <div className="tp-paywall-blurred-area">
-                  <div className="tp-paywall__blurred">
-                    {lockedSteps.map((step, idx) => (
-                      <div key={idx} className="tp-day-card glass-strong tp-day-card--blur">
-                        <div className="tp-day-header">
-                          <span className="tp-day-emoji">{step.emoji}</span>
-                          <div>
-                            <span className="tp-day-label">Día {step.day}</span>
-                            <h4 className="tp-day-place">{step.place}</h4>
+                  <div className="tp-paywall-blurred-area">
+                    <div className="tp-paywall__blurred">
+                      {lockedSteps.map((step, idx) => (
+                        <div key={idx} className="tp-day-card glass-strong tp-day-card--blur">
+                          <div className="tp-day-header">
+                            <span className="tp-day-emoji">{step.emoji}</span>
+                            <div>
+                              <span className="tp-day-label">Día {step.day}</span>
+                              <h4 className="tp-day-place">{step.place}</h4>
+                            </div>
+                          </div>
+                          <div className="tp-day-slots">
+                            {step.slots?.slice(0, 2).map((s, si) => (
+                              <div key={si} className="tp-slot">
+                                <div className="tp-slot__type-badge">{s.type}</div>
+                                <div className="tp-slot__content">
+                                  <strong className="tp-slot__title">{s.title}</strong>
+                                  <p className="tp-slot__desc">{s.desc}</p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <div className="tp-day-slots">
-                          <div className="tp-slot"><span className="tp-slot__time">{step.slots?.[0]?.type || '🌅'}</span><div className="tp-slot__content"><strong>{step.slots?.[0]?.title}</strong><p>{step.slots?.[0]?.desc}</p></div></div>
-                          <div className="tp-slot"><span className="tp-slot__time">{step.slots?.[1]?.type || '☀️'}</span><div className="tp-slot__content"><strong>{step.slots?.[1]?.title}</strong><p>{step.slots?.[1]?.desc}</p></div></div>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    <div className="tp-paywall__gradient-overlay" />
                   </div>
-                  <div className="tp-paywall__gradient-overlay" />
-                </div>
+                </>
               )}
             </>
           )}
@@ -218,50 +229,73 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           {/* TAB 2: Ruta Secreta */}
           {tab === 1 && (
             <div className="tp-secret">
-              <div className="tp-secret__blurred">
-                {currentPlan.secretItinerary.map((step, idx) => (
+              {isPremium ? (
+                currentPlan.secretItinerary?.map((step, idx) => (
                   <div key={idx} className="tp-day-card glass-strong">
                     <div className="tp-day-header">
                       <span className="tp-day-emoji">{step.emoji}</span>
                       <div>
-                        <span className="tp-day-label">Día {step.day}</span>
+                        <span className="tp-day-label">Día {step.day} · Secreto</span>
                         <h4 className="tp-day-place">{step.place}</h4>
                       </div>
                     </div>
-                    <p style={{color:'#bbb', padding:'0 20px 20px'}}>{step.highlight}</p>
+                    <p style={{ color: '#ccc', padding: '0 20px 20px', lineHeight: 1.6 }}>{step.highlight}</p>
+                    {step.link && (
+                      <a href={step.link} target="_blank" rel="noopener noreferrer" className="tp-slot__map-btn" style={{ margin: '0 20px 20px' }}>
+                        📍 Ver en Maps
+                      </a>
+                    )}
                   </div>
-                ))}
-              </div>
-              {!isPremium && (
-                <div className="tp-paywall__cta">
-                  <span className="tp-paywall__lock">🗝️</span>
-                  <h3 className="tp-paywall__title">🔥 Ruta Secreta: Lo que los guías te ocultan</h3>
-                  <p className="tp-paywall__sub">Mientras los turistas hacen colas de 2 horas, los usuarios Pro comen en los restaurantes locales reales y entran por las puertas traseras. No seas un guiri más. Sé <strong>Wandr Plus</strong>.</p>
-                  <a href="#pricing" onClick={onClose} className="tp-paywall__btn" style={{background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white'}}>Ver secretos por 4,99€/mes →</a>
-                  <span className="tp-paywall__hint">O prueba gratis y míralo ahora.</span>
-                </div>
+                ))
+              ) : (
+                <>
+                  <div className="tp-secret__blurred">
+                    {currentPlan.secretItinerary?.map((step, idx) => (
+                      <div key={idx} className="tp-day-card glass-strong" style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' }}>
+                        <div className="tp-day-header">
+                          <span className="tp-day-emoji">{step.emoji}</span>
+                          <div>
+                            <span className="tp-day-label">Día {step.day}</span>
+                            <h4 className="tp-day-place">{step.place}</h4>
+                          </div>
+                        </div>
+                        <p style={{ color: '#bbb', padding: '0 20px 20px' }}>{step.highlight}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="tp-paywall__cta">
+                    <span className="tp-paywall__lock">🗝️</span>
+                    <h3 className="tp-paywall__title">🔥 Lo que los guías no te cuentan</h3>
+                    <p className="tp-paywall__sub">Mientras los turistas hacen colas de 2 horas, los usuarios Pro comen donde los locales y encuentran las calas sin gente. No seas un guiri más.</p>
+                    <a href="#pricing" onClick={onClose} className="tp-paywall__btn" style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', color: 'white' }}>
+                      Ver secretos por 4,99€/mes →
+                    </a>
+                  </div>
+                </>
               )}
             </div>
           )}
         </div>
 
-        {/* Wandr AI Iterative Edit Bar */}
+        {/* AI Edit Bar */}
         <div className="tp-ai-edit-bar">
           {isEditing ? (
             <div className="tp-ai-loading">
-              <div className="hero-loading__spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
+              <div className="hero-loading__spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
               <span>Wandr AI está rediseñando tu plan...</span>
             </div>
           ) : (
             <>
-              <input 
-                type="text" 
-                placeholder="✨ Cámbiame algo... (Ej: Pon más restaurantes locales en el día 2)" 
-                value={editPrompt} 
+              <input
+                type="text"
+                placeholder={isPremium ? '✨ Cámbiame algo... (Ej: Añade una excursión a Capri el día 4)' : '🔒 Edición IA · Solo usuarios Pro'}
+                value={editPrompt}
                 onChange={e => setEditPrompt(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleEditSubmit()}
+                readOnly={!isPremium}
+                style={{ cursor: isPremium ? 'text' : 'not-allowed', opacity: isPremium ? 1 : 0.6 }}
               />
-              <button onClick={handleEditSubmit} disabled={!editPrompt.trim()}>Enviar</button>
+              <button onClick={handleEditSubmit} disabled={!editPrompt.trim() || !isPremium}>Enviar</button>
             </>
           )}
         </div>
