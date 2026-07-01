@@ -28,10 +28,12 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
     setIsEditing(true);
     try {
       const updatedPlan = await editTripPlan(currentPlan, editPrompt);
-      setCurrentPlan(updatedPlan);
+      setCurrentPlan(updatedPlan); // editTripPlan always returns something (original or updated)
       setEditPrompt('');
-    } catch { alert('Error al editar el plan.'); }
-    finally { setIsEditing(false); }
+    } catch (e) {
+      console.warn('Edit silently failed, keeping current plan:', e);
+      // Never alert — editTripPlan already returns original plan on failure
+    } finally { setIsEditing(false); }
   };
 
   const handlePremiumAction = (name) => {

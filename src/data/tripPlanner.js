@@ -6,10 +6,59 @@ export const SEARCH_EXAMPLES = [
   'Costa Rica, naturaleza y aventura',
 ];
 
+// ─── SEMANTIC PARSER ──────────────────────────────────────────────────────────
+// Extracts {destination, days, mood} from raw natural language before calling AI.
+// This runs client-side so there is zero risk of confusing budget words with places.
+const BUDGET_WORDS = /\b(dinero|barato|caro|económico|asequible|lujo|presupuesto|gasto|euros?|libre|ahorro|gratis)\b/gi;
+const STOP_WORDS = new Set([
+  'quiero','viajar','ir','visitar','conocer','ver','hacer','días','dia','dias','semanas','semana',
+  'noche','noches','con','para','en','de','que','por','a','el','la','los','las','un','una','al',
+  'del','mi','mis','su','sus','hay','muy','mas','más','poco','mucho','mucho','pero','donde',
+  'cuanto','si','no','porque','dinero','barato','caro','lujo','económico','presupuesto','gasto',
+  'chill','relax','aventura','romance','romántico','romántica','amigo','amiga','familia','pareja',
+  'novia','novio','solo','sola','juntos','viaje','plan','vuelo','vuelos','hotel','hoteles',
+]);
+
+export function extractDestination(rawInput) {
+  // Strip budget/mood noise first
+  let clean = rawInput.replace(BUDGET_WORDS, ' ').trim();
+
+  // Pattern 1: explicit "X días en DEST" or "a DEST" or "en DEST"
+  const explicit = clean.match(
+    /(?:\d+\s+d[ií]as?\s+(?:en|a)\s+|(?:viajar|ir|visitar)\s+(?:a|en)\s+|(?:^|\s)en\s+)([A-ZÁÉÍÓÚÑÀ-Ÿa-záéíóúñ][a-zA-ZÁÉÍÓÚÑÀ-Ÿa-záéíóúñ\s]{2,20}?)(?:\s*,|\s+\d|\s+con|\s+en|\s+de|\s+para|$)/i
+  );
+  if (explicit?.[1]) return explicit[1].trim().replace(/\s+/g, ' ');
+
+  // Pattern 2: any capitalized word/phrase not in stopwords
+  const words = clean.split(/[\s,]+/);
+  const candidates = words.filter(w =>
+    w.length > 2 &&
+    !STOP_WORDS.has(w.toLowerCase()) &&
+    !/^\d+$/.test(w)
+  );
+  const capitalized = candidates.find(w => /^[A-ZÁÉÍÓÚÑÀ-Ÿ]/.test(w));
+  if (capitalized) return capitalized.charAt(0).toUpperCase() + capitalized.slice(1);
+
+  // Pattern 3: any non-stopword
+  if (candidates[0]) return candidates[0].charAt(0).toUpperCase() + candidates[0].slice(1);
+
+  return 'tu destino';
+}
+
+function extractMood(rawInput) {
+  const moods = [];
+  if (/chill|relax|tranquil|descanso|playa/i.test(rawInput)) moods.push('chill y relajado');
+  if (/romant|novia|novio|pareja|cena especial|sorpresa/i.test(rawInput)) moods.push('romántico');
+  if (/aventur|trekking|senderismo|activo|deporte/i.test(rawInput)) moods.push('aventura y naturaleza');
+  if (/cultura|museo|historia|arte/i.test(rawInput)) moods.push('cultural');
+  if (/fiesta|noche|club|bar|discoteca/i.test(rawInput)) moods.push('vida nocturna');
+  if (/gastronomia|comida|restaurante|food/i.test(rawInput)) moods.push('gastronomía');
+  return moods.length ? moods.join(', ') : 'exploración general';
+}
+
+// ─── GENERATE QUESTIONS ───────────────────────────────────────────────────────
 export async function generateQuestions(userInput) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-  // Skip if input already has enough context
   const hasContext = userInput.trim().length > 50 &&
     /novia|chica|pareja|amigo|familia|solo\b|noche|d[ií]a|semana/i.test(userInput);
   if (hasContext || !apiKey) return [];
@@ -32,67 +81,79 @@ export async function generateQuestions(userInput) {
   } catch { return []; }
 }
 
-export async function generateTripPlan(destination, dates, questions, answers) {
+// ─── GENERATE TRIP PLAN ───────────────────────────────────────────────────────
+export async function generateTripPlan(rawInput, dates, questions, answers) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const days = calculateDays(dates.start, dates.end);
-  if (!apiKey) return buildGenericFallback(destination, days);
+
+  // Step 1: Extract destination client-side BEFORE calling AI
+  const destination = extractDestination(rawInput);
+  const mood = extractMood(rawInput);
+  const destEncoded = encodeURIComponent(destination);
+
+  if (!apiKey) return buildGenericFallback(destination, days, mood);
 
   const extras = (questions || []).map((q, i) => `${q}: ${answers[i] || ''}`).filter(Boolean).join('. ');
 
-  const prompt = `Eres un planificador de viajes de lujo con conocimiento enciclopédico de destinos. El usuario pide:
+  // Step 2: Pass destination and mood EXPLICITLY — AI cannot confuse them
+  const prompt = `Eres un experto planificador de viajes de lujo. Estos son los datos CONFIRMADOS del viaje:
 
-PETICIÓN: "${destination}"
-FECHAS: ${dates.start} a ${dates.end} (${days} días total)${extras ? `\nINFO EXTRA: ${extras}` : ''}
+DESTINO CONFIRMADO: "${destination}"
+PETICIÓN COMPLETA: "${rawInput}"
+MOOD DEL VIAJE: ${mood}
+FECHAS: ${dates.start} hasta ${dates.end} (EXACTAMENTE ${days} días)${extras ? `\nINFO ADICIONAL: ${extras}` : ''}
 
-REGLAS CRÍTICAS:
-1. Analiza la petición: identifica destinos, días en cada uno, actividades específicas pedidas (cena romántica, playa, coche, ferry, etc.)
-2. Distribuye los días EXACTAMENTE como pide (ej: "6 días Cagliari + 3 Nápoles" = días 1-6 en Cagliari, 7-9 en Nápoles)
-3. CRONOGRAMA HORA A HORA: cada día debe cubrir desde el desayuno (08:00) hasta las copas de noche (23:00+). Mínimo 7 slots por día.
-4. Nombres REALES de cada sitio (restaurante, playa, bar, monumento). NADA genérico.
-5. Adapta el MOOD: si pide "chill", el itinerario es relajado (playitas, aperitivos, no masas). Si pide "romantico", reserva restaurantes con vistas/atardecer.
-6. Si hay una petición especial (cena romántica de sorpresa, excursión específica), ponla en el día concreto con campo "isSpecial: true" en ese día.
-7. FILTRO SEMÁNTICO: Identifica el destino real (país o ciudad) introducido. Ignora palabras como "dinero", "barato", "lujo" a la hora de nombrar el destino.
-8. COHERENCIA GEOGRÁFICA Y CULTURAL ABSOLUTA: Prohibido mezclar ciudades, países o continentes. Todo el contenido (hoteles, playas, comida, vuelos) debe ser estrictamente del destino elegido y logísticamente posible.
-9. CRÍTICO: Debes generar exactamente el número de días solicitados: ${days} días. Ni uno menos ni uno más.
-10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa SOLO el nombre del hotel en el parámetro ss, reemplazando espacios por +)
-11. Vuelos multi-destino: si hay vuelos intermedios, calcula la fecha exacta sumando los días correspondientes desde el inicio (${dates.start}) para ponerla en la descripción o enlace del vuelo.
+REGLAS ABSOLUTAS (ninguna es opcional):
+1. El destino es "${destination}". TODO el contenido (vuelos, hoteles, restaurantes, playas, monumentos) debe ser de "${destination}" y sus alrededores. PROHIBIDO mezclar países o continentes.
+2. Genera EXACTAMENTE ${days} días, ni uno más ni uno menos.
+3. Cada día: mínimo 7 slots desde las 08:00 hasta las 23:00+. Cronograma hora a hora.
+4. Nombres REALES y verificables de cada lugar (restaurante, playa, museo, bar). Sin inventar.
+5. Adapta TODO al mood "${mood}": si es chill, planes tranquilos; si es romántico, cenas con vistas.
+6. Si el usuario pide algo especial (cena sorpresa, excursión concreta), ponlo en el día exacto con "isSpecial": true.
+7. "destination" en el JSON = título corto del viaje (máx 5 palabras), no la petición literal.
+8. Links de Google Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+${destEncoded} (reemplaza espacios por +)
+9. Links Booking: https://www.booking.com/searchresults.html?ss=NOMBRE_HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (ss = nombre exacto del hotel en el destino real)
+10. Links Skyscanner: https://www.skyscanner.es/vuelos/IATA_ORIGEN/IATA_DESTINO_REAL/ con las siglas IATA reales del aeropuerto de "${destination}"
 
-Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después). El JSON de abajo es SOLO UN EJEMPLO DE ESTRUCTURA. DEBES rellenarlo con datos reales del destino:
+Devuelve ÚNICAMENTE JSON válido (sin markdown ni texto extra):
 {
-  "destination": "Nombre del Destino Real",
-  "flag": "🌍",
-  "cover": "https://images.unsplash.com/photo-1553697388-94e804e2f0f6?w=1200&q=80",
+  "destination": "Título corto del viaje",
+  "flag": "🇨🇴",
+  "cover": "https://images.unsplash.com/photo-XXXXXXXXXX?w=1200&q=80",
   "days": ${days},
-  "companions": "En pareja",
-  "vibe": "El ambiente del viaje",
-  "budget": { "total": "2.200€", "flights": "380€", "hotel": "95€/noche", "daily": "75€/día" },
-  "weather": { "temp": "29°C", "icon": "☀️", "text": "Clima típico" },
-  "bestTime": "Meses ideales",
+  "companions": "Con quién viaja",
+  "vibe": "${mood}",
+  "budget": { "total": "X.XXX€", "flights": "XXX€", "hotel": "XX€/noche", "daily": "XX€/día" },
+  "weather": { "temp": "XX°C", "icon": "☀️", "text": "Descripción clima real" },
+  "bestTime": "Meses ideales para ${destination}",
   "flights": [
-    { "airline": "Aerolínea Real", "price": "~160€/persona", "route": "MAD → IATA_DEST", "duration": "xhxx", "link": "https://www.skyscanner.es/vuelos/mad/iata/" }
+    { "airline": "Aerolínea real", "price": "~XXX€/persona", "route": "MAD → IATA_${destination.toUpperCase().slice(0,3)}", "duration": "Xh Xm", "link": "https://www.skyscanner.es/vuelos/mad/IATA_REAL_DEL_AEROPUERTO/" }
   ],
   "hotels": [
-    { "name": "Nombre Hotel Real 1", "stars": "4★", "price": "$$", "vibe": "Céntrico", "link": "https://www.booking.com/searchresults.html?ss=Nombre+Hotel+Real+1&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
+    { "name": "Nombre Hotel Real en ${destination}", "stars": "X★", "price": "$$", "vibe": "Descripción del hotel", "link": "https://www.booking.com/searchresults.html?ss=Nombre+Hotel+Real&checkin=${dates.start}&checkout=${dates.end}&group_adults=2" }
   ],
   "itinerary": [
     {
       "day": 1,
-      "place": "Nombre de la ciudad – Llegada",
-      "emoji": "🌴",
+      "place": "Ciudad en ${destination} – Tema del día",
+      "emoji": "✈️",
       "isSpecial": false,
       "slots": [
-        { "type": "🥐 Desayuno", "time": "08:30", "title": "Nombre de Cafetería Real", "desc": "Descripción real.", "link": "https://www.google.com/maps/search/?api=1&query=Cafeteria+Real+Ciudad" },
-        { "type": "📸 Mañana", "time": "10:00", "title": "Monumento Real", "desc": "Descripción de la visita.", "link": "https://www.google.com/maps/search/?api=1&query=Monumento+Real+Ciudad" }
+        { "type": "🥐 Desayuno", "time": "08:30", "title": "Nombre Cafetería Real en ${destination}", "desc": "Descripción real.", "link": "https://www.google.com/maps/search/?api=1&query=Nombre+Cafeteria+${destEncoded}" },
+        { "type": "📸 Mañana", "time": "10:00", "title": "Lugar Real en ${destination}", "desc": "Descripción.", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Real+${destEncoded}" },
+        { "type": "☕ Café", "time": "12:00", "title": "Café Real", "desc": "Descripción.", "link": "https://www.google.com/maps/search/?api=1&query=Cafe+Real+${destEncoded}" },
+        { "type": "🍽️ Comida", "time": "14:00", "title": "Restaurante Real", "desc": "Descripción.", "link": "https://www.google.com/maps/search/?api=1&query=Restaurante+Real+${destEncoded}" },
+        { "type": "🌆 Tarde", "time": "16:30", "title": "Actividad Real", "desc": "Descripción.", "link": "https://www.google.com/maps/search/?api=1&query=Actividad+Real+${destEncoded}" },
+        { "type": "🍷 Cena", "time": "20:30", "title": "Restaurante Noche Real", "desc": "Descripción.", "link": "https://www.google.com/maps/search/?api=1&query=Restaurante+Noche+Real+${destEncoded}" },
+        { "type": "🍹 Copas", "time": "23:00", "title": "Bar Real", "desc": "Descripción.", "link": "https://www.google.com/maps/search/?api=1&query=Bar+Real+${destEncoded}" }
       ],
-      "tip": "Consejo real para este día."
+      "tip": "Consejo real para este día en ${destination}."
     }
   ],
   "secretItinerary": [
-    { "day": "3", "place": "Lugar Secreto Real", "emoji": "🤫", "highlight": "Por qué es secreto.", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Secreto+Ciudad" }
+    { "day": "2", "place": "Lugar secreto real en ${destination}", "emoji": "🤫", "highlight": "Por qué es especial y cómo llegar.", "link": "https://www.google.com/maps/search/?api=1&query=Lugar+Secreto+${destEncoded}" }
   ]
-}
-
-RECUERDA: el JSON de arriba es solo el FORMATO. Genera el contenido REAL para la petición del usuario: "${destination}". Genera los ${days} días completos con lugares específicos y reales de los destinos correctos.`;
+}`;
 
   try {
     const res = await fetch(
@@ -102,69 +163,97 @@ RECUERDA: el JSON de arriba es solo el FORMATO. Genera el contenido REAL para la
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.8, maxOutputTokens: 16000, responseMimeType: 'application/json' }
+          generationConfig: { temperature: 0.7, maxOutputTokens: 16000, responseMimeType: 'application/json' }
         })
       }
     );
     if (!res.ok) {
-      console.error('Gemini API error:', res.status, await res.text());
-      return buildGenericFallback(destination, days);
+      console.error('Gemini API error:', res.status);
+      return buildGenericFallback(destination, days, mood);
     }
     const data = await res.json();
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    // Robust JSON extraction
-    const startIndex = text.indexOf('{');
-    const endIndex = text.lastIndexOf('}');
-    if (startIndex !== -1 && endIndex !== -1) {
-      text = text.substring(startIndex, endIndex + 1);
-    }
-    
+
+    // Robust JSON extraction: find first { and last }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1) text = text.substring(start, end + 1);
+
     const parsed = JSON.parse(text);
-    if (!parsed.itinerary?.length) throw new Error('Empty itinerary from AI');
+    if (!parsed.itinerary?.length) throw new Error('Empty itinerary');
     return parsed;
   } catch (err) {
     console.error('Plan generation failed:', err.message);
-    return buildGenericFallback(destination, days);
+    return buildGenericFallback(destination, days, mood);
   }
 }
 
+// ─── EDIT TRIP PLAN (Chat IA) ──────────────────────────────────────────────────
 export async function editTripPlan(currentPlanJSON, userEditRequest) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error('No API key');
+  if (!apiKey) return currentPlanJSON; // Graceful: return original if no key
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `Edita este itinerario JSON según la petición. Mantén TODOS los campos y la estructura exacta, solo cambia lo solicitado en el interior.\nJSON original: ${JSON.stringify(currentPlanJSON)}\nCambio solicitado: "${userEditRequest}"\nCRÍTICO: Devuelve ÚNICAMENTE el JSON actualizado sin bloques de código markdown (\`\`\`), sin comentarios, y que sea 100% válido para JSON.parse().` }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 16000, responseMimeType: 'application/json' }
-      })
-    }
-  );
-  if (!res.ok) throw new Error('API Error');
-  const data = await res.json();
-  let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  
-  // Robust JSON extraction
-  const startIndex = text.indexOf('{');
-  const endIndex = text.lastIndexOf('}');
-  if (startIndex !== -1 && endIndex !== -1) {
-    text = text.substring(startIndex, endIndex + 1);
-  } else {
-    text = text.replace(/```[a-zA-Z]*\n?/g, '').replace(/```\n?/g, '').trim();
-  }
-  
   try {
-    return JSON.parse(text);
+    // Send only itinerary + key fields to reduce token load
+    const slim = {
+      destination: currentPlanJSON.destination,
+      vibe: currentPlanJSON.vibe,
+      itinerary: currentPlanJSON.itinerary,
+      secretItinerary: currentPlanJSON.secretItinerary,
+    };
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Eres un editor de itinerarios de viaje. Tienes este JSON de un viaje a "${currentPlanJSON.destination}":
+${JSON.stringify(slim)}
+
+El usuario pide: "${userEditRequest}"
+
+Aplica el cambio SOLO en los campos relevantes. REGLAS:
+- Mantén la estructura exacta del JSON
+- No cambies el destino ni el número de días
+- Solo JSON de respuesta (sin markdown, sin texto extra)
+- El JSON devuelto debe ser 100% parseable
+
+Devuelve el JSON completo modificado.`
+            }]
+          }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 10000, responseMimeType: 'application/json' }
+        })
+      }
+    );
+
+    if (!res.ok) return currentPlanJSON; // Graceful fallback
+
+    const data = await res.json();
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1) text = text.substring(start, end + 1);
+
+    const updated = JSON.parse(text);
+
+    // Merge: keep flights/hotels/budget from original, update only itinerary/vibe
+    return {
+      ...currentPlanJSON,
+      vibe: updated.vibe || currentPlanJSON.vibe,
+      itinerary: updated.itinerary || currentPlanJSON.itinerary,
+      secretItinerary: updated.secretItinerary || currentPlanJSON.secretItinerary,
+    };
   } catch (err) {
-    console.error("Failed to parse edited JSON:", text);
-    throw err;
+    console.error('Edit failed, returning original plan:', err.message);
+    return currentPlanJSON; // NEVER throw — return original plan silently
   }
 }
 
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function calculateDays(start, end) {
   if (!start || !end) return 7;
   const diff = Math.abs(new Date(end) - new Date(start));
@@ -172,88 +261,53 @@ function calculateDays(start, end) {
   return d > 0 ? d : 7;
 }
 
-function buildGenericFallback(destination, days) {
-  // Extract a clean destination name from user input
-  const words = destination.trim().split(/\s+/);
-  const stopWords = ['quiero','viajar','dias','dinero','barato','caro','poco','mucho','con','para','en','a','el','la','los','las','un','una','muy','ir','visitar'];
-  const possibleDests = words.filter(w => !stopWords.includes(w.toLowerCase()) && w.length > 2 && !/\d/.test(w));
-  
-  // Pick capitalized word, or first non-stopword, or fallback
-  let destName = possibleDests.find(w => /^[A-ZÀ-Ÿ]/.test(w)) || possibleDests[0] || 'tu destino';
-  let cleanDest = destName.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
-  cleanDest = cleanDest.charAt(0).toUpperCase() + cleanDest.slice(1).toLowerCase();
+// ─── GENERIC FALLBACK (when AI fails) ─────────────────────────────────────────
+function buildGenericFallback(destination, days, mood = '') {
+  const cleanDest = (destination || 'tu destino')
+    .replace(/[^a-zA-ZÀ-ÿ\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const cap = cleanDest.charAt(0).toUpperCase() + cleanDest.slice(1);
+  const destEncoded = encodeURIComponent(cap);
+  const hotelName = `Hotel Boutique ${cap}`;
 
-  const hotelName = `Hotel Boutique ${cleanDest}`;
-
-  const dayTemplates = [
-    {
-      place: `${cleanDest} – Llegada y primera inmersión`, emoji: '✈️',
-      slots: [
-        { type: '🥐 Desayuno', time: '09:00', title: 'Bar local', desc: 'Desayuno típico de la zona para empezar bien el día.' },
-        { type: '📸 Mañana', time: '10:30', title: 'Centro histórico', desc: 'Paseo de reconocimiento por los lugares principales.' },
-        { type: '☕ Café', time: '12:00', title: 'Café histórico', desc: 'Pausa en una plaza céntrica con mucho ambiente.' },
-        { type: '🍝 Comida', time: '13:30', title: 'Restaurante tradicional', desc: 'Prueba la especialidad local del lugar.' },
-        { type: '🏖️ Tarde', time: '15:30', title: 'Punto panorámico', desc: 'Las mejores vistas de la ciudad al caer la tarde.' },
-        { type: '🍷 Cena', time: '20:30', title: 'Cena con vistas', desc: 'Restaurante recomendado para una noche perfecta.' },
-        { type: '🍹 Copas', time: '23:00', title: 'Bar de moda', desc: 'El mejor ambiente nocturno para terminar el día.' }
-      ],
-      tip: 'El primer día es para orientarse. Toma las cosas con calma.'
-    },
-    {
-      place: `Explorando ${cleanDest}`, emoji: '🗺️',
-      slots: [
-        { type: '🥐 Desayuno', time: '09:00', title: 'Cafetería de especialidad', desc: 'Un buen café antes de la aventura.' },
-        { type: '📸 Mañana', time: '10:00', title: 'Excursión o Visita clave', desc: 'Actividad principal recomendada de la zona.' },
-        { type: '🍝 Comida', time: '14:00', title: 'Comida local', desc: 'Restaurante alejado de las zonas más turísticas.' },
-        { type: '☕ Café', time: '16:00', title: 'Dulce local', desc: 'Prueba el postre típico del destino.' },
-        { type: '🚶 Tarde', time: '17:30', title: 'Paseo y compras', desc: 'Recorrido por las calles más comerciales o artesanales.' },
-        { type: '🍷 Cena', time: '20:30', title: 'Cena auténtica', desc: 'Gastronomía pura en un local familiar.' },
-        { type: '🍹 Copas', time: '22:30', title: 'Terraza o Rooftop', desc: 'Vistas nocturnas de la ciudad.' }
-      ],
-      tip: 'Madruga para visitar los puntos más populares sin multitudes.'
-    }
+  const baseSlots = (d) => [
+    { type: '🥐 Desayuno', time: '09:00', title: `Cafetería local en ${cap}`, desc: 'Desayuno típico de la zona.', link: `https://www.google.com/maps/search/?api=1&query=desayuno+${destEncoded}` },
+    { type: '📸 Mañana', time: '10:30', title: `Barrio histórico de ${cap}`, desc: 'Primera inmersión cultural.', link: `https://www.google.com/maps/search/?api=1&query=barrio+historico+${destEncoded}` },
+    { type: '🍽️ Comida', time: '13:30', title: `Restaurante local`, desc: `Especialidad gastronómica de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=restaurante+tipico+${destEncoded}` },
+    { type: '🌆 Tarde', time: '16:00', title: `Punto panorámico`, desc: `Las mejores vistas de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=mirador+${destEncoded}` },
+    { type: '🍷 Cena', time: '20:30', title: `Restaurante recomendado`, desc: 'Una noche perfecta.', link: `https://www.google.com/maps/search/?api=1&query=mejor+restaurante+${destEncoded}` },
+    { type: '🍹 Copas', time: '23:00', title: `Bar de moda en ${cap}`, desc: 'Ambiente local.', link: `https://www.google.com/maps/search/?api=1&query=bar+noche+${destEncoded}` },
   ];
 
   const itinerary = Array.from({ length: Math.min(days, 12) }, (_, i) => ({
     day: i + 1,
-    ...dayTemplates[i % dayTemplates.length],
-    place: i === 0 ? dayTemplates[0].place : `Día ${i + 1} en ${cleanDest}`,
+    place: i === 0 ? `${cap} – Llegada` : `Día ${i + 1} – ${cap}`,
     emoji: i === 0 ? '✈️' : '🗺️',
-    isSpecial: i === Math.floor(days / 2), 
-    slots: dayTemplates[i % dayTemplates.length].slots.map(s => ({
-      ...s,
-      link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.title + ' ' + cleanDest)}`
-    }))
+    isSpecial: i === Math.floor(days / 2),
+    slots: baseSlots(i),
+    tip: `Explora ${cap} con calma y sin prisas.`
   }));
 
-  if (itinerary.length > 2) {
-    const specialDay = Math.floor(days / 2);
-    itinerary[specialDay].place = `${cleanDest} – Día especial`;
-    itinerary[specialDay].slots[5] = {
-      type: '🍷 Cena especial', time: '20:30',
-      title: 'Restaurante TOP',
-      desc: 'El mejor lugar para una cena inolvidable.',
-      link: `https://www.google.com/maps/search/?api=1&query=mejor+restaurante+${encodeURIComponent(cleanDest)}`
-    };
-  }
-
   return {
-    destination: `${days} días en ${cleanDest}`,
+    destination: `${days} días en ${cap}`,
     flag: '🌍',
-    cover: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80',
-    days, companions: 'En pareja / Amigos', vibe: 'Exploración y Relax',
+    cover: `https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80`,
+    days,
+    companions: 'Viajero',
+    vibe: mood || 'Exploración y relax',
     budget: { total: '1.500€', flights: '300€', hotel: '90€/noche', daily: '60€/día' },
     weather: { temp: '25°C', icon: '🌤️', text: 'Clima agradable' },
-    bestTime: 'Todo el año',
+    bestTime: 'Consulta temporada local',
     flights: [
-      { airline: 'Buscador de vuelos', price: 'Ver precios', route: `Vuelos a ${cleanDest}`, duration: '-', link: `https://www.skyscanner.es/` }
+      { airline: 'Busca vuelos', price: 'Ver precios', route: `MAD → ${cap.toUpperCase().slice(0,3)}`, duration: '-', link: `https://www.skyscanner.es/vuelos/mad/?destination=${destEncoded}` }
     ],
     hotels: [
       { name: hotelName, stars: '4★', price: '$$', vibe: 'Céntrico y moderno', link: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(hotelName)}&group_adults=2` }
     ],
     itinerary,
     secretItinerary: [
-      { day: '2', place: `Rincón secreto en ${cleanDest}`, emoji: '🤫', highlight: 'Ese lugar especial que no sale en las guías turísticas pero que los locales aman.', link: `https://www.google.com/maps/search/?api=1&query=rincon+secreto+${encodeURIComponent(cleanDest)}` }
+      { day: '2', place: `Rincón especial en ${cap}`, emoji: '🤫', highlight: `El lugar que los locales no comparten con turistas en ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=lugares+secretos+${destEncoded}` }
     ]
   };
 }
