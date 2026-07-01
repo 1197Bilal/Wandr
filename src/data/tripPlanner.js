@@ -51,7 +51,8 @@ REGLAS CRÍTICAS:
 4. Nombres REALES de cada sitio (restaurante, playa, bar, monumento). NADA genérico.
 5. Adapta el MOOD: si pide "chill", el itinerario es relajado (playitas, aperitivos, no masas). Si pide "romantico", reserva restaurantes con vistas/atardecer.
 6. Si hay una petición especial (cena romántica de sorpresa, excursión específica), ponla en el día concreto con campo "isSpecial: true" en ese día.
-7. FILTRO SEMÁNTICO: Identifica el destino real (país o ciudad) introducido. Ignora palabras como "dinero", "barato", "lujo" a la hora de nombrar el destino, úsalas SOLO para adaptar el presupuesto y tipo de hoteles. NUNCA inventes destinos, extrae el real.
+7. FILTRO SEMÁNTICO: Identifica el destino real (país o ciudad) introducido. Ignora palabras como "dinero", "barato", "lujo" a la hora de nombrar el destino.
+8. COHERENCIA GEOGRÁFICA Y CULTURAL ABSOLUTA: Prohibido mezclar ciudades, países o continentes. Todo el contenido (hoteles, playas, comida, vuelos) debe ser estrictamente del destino elegido y logísticamente posible.
 10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa SOLO el nombre del hotel en el parámetro ss, reemplazando espacios por +)
 11. Vuelos multi-destino: si hay vuelos intermedios, calcula la fecha exacta sumando los días correspondientes desde el inicio (${dates.start}) para ponerla en la descripción o enlace del vuelo.
 
@@ -118,7 +119,14 @@ RECUERDA: el JSON de arriba es solo el FORMATO. Genera el contenido REAL para la
     }
     const data = await res.json();
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    text = text.replace(/```json\n?|```\n?/g, '').trim();
+    
+    // Robust JSON extraction
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+      text = text.substring(startIndex, endIndex + 1);
+    }
+    
     const parsed = JSON.parse(text);
     if (!parsed.itinerary?.length) throw new Error('Empty itinerary from AI');
     return parsed;
@@ -146,7 +154,15 @@ export async function editTripPlan(currentPlanJSON, userEditRequest) {
   if (!res.ok) throw new Error('API Error');
   const data = await res.json();
   let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  text = text.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+  
+  // Robust JSON extraction
+  const startIndex = text.indexOf('{');
+  const endIndex = text.lastIndexOf('}');
+  if (startIndex !== -1 && endIndex !== -1) {
+    text = text.substring(startIndex, endIndex + 1);
+  } else {
+    text = text.replace(/```[a-zA-Z]*\n?/g, '').replace(/```\n?/g, '').trim();
+  }
   
   try {
     return JSON.parse(text);
