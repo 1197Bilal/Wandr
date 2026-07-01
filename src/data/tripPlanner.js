@@ -51,10 +51,7 @@ REGLAS CRÍTICAS:
 4. Nombres REALES de cada sitio (restaurante, playa, bar, monumento). NADA genérico.
 5. Adapta el MOOD: si pide "chill", el itinerario es relajado (playitas, aperitivos, no masas). Si pide "romantico", reserva restaurantes con vistas/atardecer.
 6. Si hay una petición especial (cena romántica de sorpresa, excursión específica), ponla en el día concreto con campo "isSpecial: true" en ese día.
-7. "destination": título corto (máx 5 palabras, NUNCA la petición literal del usuario).
-8. Links Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+CIUDAD (espacios → +)
-9. Links vuelos Skyscanner: https://www.skyscanner.es/vuelos/IATA_ORIGEN/IATA_DESTINO/ (ej: /mad/cag/)
-10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL+CIUDAD&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa el nombre del hotel en el parámetro ss, ej: ss=Grand+Hotel+Vesuvio+Napoles)
+10. Links Booking directos al hotel: https://www.booking.com/searchresults.html?ss=NOMBRE+HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (usa SOLO el nombre del hotel en el parámetro ss, reemplazando espacios por +)
 11. Vuelos multi-destino: si hay vuelos intermedios, calcula la fecha exacta sumando los días correspondientes desde el inicio (${dates.start}) para ponerla en la descripción o enlace del vuelo.
 
 Devuelve ÚNICAMENTE este JSON (sin markdown, sin texto antes ni después):
@@ -165,80 +162,84 @@ function calculateDays(start, end) {
   return d > 0 ? d : 7;
 }
 
-// ─── FALLBACK DETALLADO ────────────────────────────────────────────────────────
 function buildGenericFallback(destination, days) {
-  const cityMatch = destination.match(/(?:en\s+|a\s+|para\s+|en\s)([A-ZÀ-ÿa-záéíóúñ]{4,})/i);
-  const destName = cityMatch?.[1] || 'Cagliari';
+  // Extract a clean destination name from user input
+  const words = destination.trim().split(/\s+/);
+  // Pick a word that looks like a city name (capitalized or just the last word if none found)
+  const destName = words.find(w => /^[A-ZÀ-Ÿ]/.test(w) && w.length > 3) || words[words.length - 1] || 'tu destino';
+  const cleanDest = destName.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
 
   const dayTemplates = [
     {
-      place: `${destName} – Llegada y primera inmersión`, emoji: '✈️',
+      place: `${cleanDest} – Llegada y primera inmersión`, emoji: '✈️',
       slots: [
-        { type: '🥐 Desayuno', time: '09:00', title: 'Bar local del barrio', desc: 'Cappuccino y brioche. Siéntate en la barra como los locales.' },
-        { type: '📸 Mañana', time: '10:30', title: 'Barrio histórico', desc: 'Primera paseo por el centro. Oriéntate sin prisa.' },
-        { type: '☕ Café', time: '12:00', title: 'Café histórico de la plaza', desc: 'Pausa con vistas. El favorito de los locales.' },
-        { type: '🍝 Comida', time: '13:30', title: 'Trattoria del mercado', desc: 'Menú del día con productos frescos locales.' },
-        { type: '🏖️ Playa', time: '15:30', title: 'Playa principal', desc: 'Primer chapuzón. Alquila hamaca y desconecta.' },
-        { type: '🍷 Cena', time: '20:30', title: 'Restaurante con terraza', desc: 'Pescado fresco con vistas al mar. Reserva imprescindible.' },
-        { type: '🍹 Copas', time: '23:00', title: 'Bar de moda local', desc: 'Spritz o vino local. Pregunta al camarero qué bebes.' }
+        { type: '🥐 Desayuno', time: '09:00', title: 'Bar local', desc: 'Desayuno típico de la zona para empezar bien el día.' },
+        { type: '📸 Mañana', time: '10:30', title: 'Centro histórico', desc: 'Paseo de reconocimiento por los lugares principales.' },
+        { type: '☕ Café', time: '12:00', title: 'Café histórico', desc: 'Pausa en una plaza céntrica con mucho ambiente.' },
+        { type: '🍝 Comida', time: '13:30', title: 'Restaurante tradicional', desc: 'Prueba la especialidad local del lugar.' },
+        { type: '🏖️ Tarde', time: '15:30', title: 'Punto panorámico', desc: 'Las mejores vistas de la ciudad al caer la tarde.' },
+        { type: '🍷 Cena', time: '20:30', title: 'Cena con vistas', desc: 'Restaurante recomendado para una noche perfecta.' },
+        { type: '🍹 Copas', time: '23:00', title: 'Bar de moda', desc: 'El mejor ambiente nocturno para terminar el día.' }
       ],
-      tip: 'El primer día es para orientarse. No te agotes, que quedan muchos más.'
+      tip: 'El primer día es para orientarse. Toma las cosas con calma.'
     },
     {
-      place: `${destName} – Playas y relax total`, emoji: '🌴',
+      place: `Explorando ${cleanDest}`, emoji: '🗺️',
       slots: [
-        { type: '🥐 Desayuno', time: '09:00', title: 'Café en la playa', desc: 'Desayuno con vistas al mar. La mejor forma de empezar.' },
-        { type: '🏖️ Mañana', time: '10:00', title: 'Cala secreta', desc: 'A 20 min en coche. Agua turquesa sin masas de turistas.' },
-        { type: '🍝 Comida', time: '14:00', title: 'Restaurante chiringuito', desc: 'Frittura di pesce y ensalada. Fresco y local.' },
-        { type: '☕ Café', time: '16:00', title: 'Helado artesano', desc: 'Gelateria local. Pide el sabor de temporada.' },
-        { type: '🚶 Tarde', time: '17:30', title: 'Paseo por el puerto', desc: 'Aperitivo viendo los barcos. Sin prisa.' },
-        { type: '🍷 Cena', time: '20:30', title: 'Cocina sarda auténtica', desc: 'Malloreddus y queso pecorino. Pide el vino Vermentino.' },
-        { type: '🍹 Copas', time: '22:30', title: 'Terraza con atardecer tardío', desc: 'Limoncello de digestivo. El cielo se pone rojo.' }
+        { type: '🥐 Desayuno', time: '09:00', title: 'Cafetería de especialidad', desc: 'Un buen café antes de la aventura.' },
+        { type: '📸 Mañana', time: '10:00', title: 'Excursión o Visita clave', desc: 'Actividad principal recomendada de la zona.' },
+        { type: '🍝 Comida', time: '14:00', title: 'Comida local', desc: 'Restaurante alejado de las zonas más turísticas.' },
+        { type: '☕ Café', time: '16:00', title: 'Dulce local', desc: 'Prueba el postre típico del destino.' },
+        { type: '🚶 Tarde', time: '17:30', title: 'Paseo y compras', desc: 'Recorrido por las calles más comerciales o artesanales.' },
+        { type: '🍷 Cena', time: '20:30', title: 'Cena auténtica', desc: 'Gastronomía pura en un local familiar.' },
+        { type: '🍹 Copas', time: '22:30', title: 'Terraza o Rooftop', desc: 'Vistas nocturnas de la ciudad.' }
       ],
-      tip: 'Las mejores calas se llenan a las 11h. Sal antes para coger sitio.'
+      tip: 'Madruga para visitar los puntos más populares sin multitudes.'
     }
   ];
 
-  const itinerary = Array.from({ length: Math.min(days, 9) }, (_, i) => ({
+  const itinerary = Array.from({ length: Math.min(days, 12) }, (_, i) => ({
     day: i + 1,
     ...dayTemplates[i % dayTemplates.length],
-    place: i < 6 ? dayTemplates[i % 2].place : `Nápoles – Día ${i - 5}`,
-    emoji: i < 6 ? (i === 0 ? '✈️' : '🌴') : '🏛️',
-    isSpecial: i === 4, // day 5 as special romantic dinner
+    place: i === 0 ? dayTemplates[0].place : `Día ${i + 1} en ${cleanDest}`,
+    emoji: i === 0 ? '✈️' : '🗺️',
+    isSpecial: i === Math.floor(days / 2), 
     slots: dayTemplates[i % dayTemplates.length].slots.map(s => ({
       ...s,
-      link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.title + ' ' + (i < 6 ? destName : 'Napoles'))}`
+      link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.title + ' ' + cleanDest)}`
     }))
   }));
 
-  if (itinerary[4]) {
-    itinerary[4].place = `${destName} – Noche especial romántica`;
-    itinerary[4].slots[5] = {
+  if (itinerary.length > 2) {
+    const specialDay = Math.floor(days / 2);
+    itinerary[specialDay].place = `${cleanDest} – Día especial`;
+    itinerary[specialDay].slots[5] = {
       type: '🍷 Cena especial', time: '20:30',
-      title: 'Restaurante con vistas al atardecer',
-      desc: 'Mesa reservada con vista al mar. La noche de la viaje. Lleva flores.',
-      link: `https://www.google.com/maps/search/?api=1&query=restaurante+romantico+${destName}`
+      title: 'Restaurante TOP',
+      desc: 'El mejor lugar para una cena inolvidable.',
+      link: `https://www.google.com/maps/search/?api=1&query=mejor+restaurante+${encodeURIComponent(cleanDest)}`
     };
   }
 
+  const hotelName = `Hotel Boutique ${cleanDest}`;
+
   return {
-    destination: `${days} días en ${destName} e Italia`,
-    flag: '🇮🇹',
-    cover: 'https://images.unsplash.com/photo-1553697388-94e804e2f0f6?w=1200&q=80',
-    days, companions: 'En pareja', vibe: 'Playa chill y gastronomía',
-    budget: { total: '2.000€', flights: '380€', hotel: '90€/noche', daily: '70€/día' },
-    weather: { temp: '29°C', icon: '☀️', text: 'Mediterráneo soleado' },
-    bestTime: 'Junio - Septiembre',
+    destination: `${days} días en ${cleanDest}`,
+    flag: '🌍',
+    cover: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80',
+    days, companions: 'En pareja / Amigos', vibe: 'Exploración y Relax',
+    budget: { total: '1.500€', flights: '300€', hotel: '90€/noche', daily: '60€/día' },
+    weather: { temp: '25°C', icon: '🌤️', text: 'Clima agradable' },
+    bestTime: 'Todo el año',
     flights: [
-      { airline: 'Vueling / Ryanair', price: '~160€', route: `MAD → ${destName}`, duration: '~2h30', link: 'https://www.skyscanner.es/vuelos/mad/cag/' }
+      { airline: 'Buscador de vuelos', price: 'Ver precios', route: `Vuelos a ${cleanDest}`, duration: '-', link: `https://www.skyscanner.es/` }
     ],
     hotels: [
-      { name: `T Hotel ${destName}`, stars: '4★', price: '$$', vibe: 'Diseño y piscina', link: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(destName)}&group_adults=2` }
+      { name: hotelName, stars: '4★', price: '$$', vibe: 'Céntrico y moderno', link: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(hotelName)}&group_adults=2` }
     ],
     itinerary,
     secretItinerary: [
-      { day: '3', place: 'Cala Goloritzé', emoji: '🤫', highlight: 'La cala más espectacular de Cerdeña. Solo accesible a pie (2h) o en barco desde Santa Maria Navarrese. Ve a las 8h para llegar solos.', link: 'https://www.google.com/maps/search/?api=1&query=Cala+Goloritze+Baunei' },
-      { day: '7', place: 'Spaccanapoli de noche', emoji: '🕯️', highlight: 'La calle más auténtica de Nápoles vacía de turistas. A las 22h el barrio es de los napolitanos. Pizza en Da Michele, la más antigua de la ciudad.', link: 'https://www.google.com/maps/search/?api=1&query=Spaccanapoli+Napoli' }
+      { day: '2', place: `Rincón secreto en ${cleanDest}`, emoji: '🤫', highlight: 'Ese lugar especial que no sale en las guías turísticas pero que los locales aman.', link: `https://www.google.com/maps/search/?api=1&query=rincon+secreto+${encodeURIComponent(cleanDest)}` }
     ]
   };
 }
