@@ -193,12 +193,16 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                               {slot.time && <span className="tp-slot__time-label">{slot.time}</span>}
                             </div>
                             {slot.link && slot.link !== '#' && (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); window.open(slot.link, '_blank', 'noopener,noreferrer'); }} 
+                              <a 
+                                href={slot.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="tp-slot__map-btn"
+                                style={{ display: 'inline-block', textDecoration: 'none' }}
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 📍 Ver en Maps
-                              </button>
+                              </a>
                             )}
                           </div>
                           <p className="tp-slot__desc">{slot.desc}</p>
