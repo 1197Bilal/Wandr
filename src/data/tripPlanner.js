@@ -271,23 +271,51 @@ function buildGenericFallback(destination, days, mood = '') {
   const destEncoded = encodeURIComponent(cap);
   const hotelName = `Hotel Boutique ${cap}`;
 
-  const baseSlots = (d) => [
-    { type: '🥐 Desayuno', time: '09:00', title: `Cafetería local en ${cap}`, desc: 'Desayuno típico de la zona.', link: `https://www.google.com/maps/search/?api=1&query=desayuno+${destEncoded}` },
-    { type: '📸 Mañana', time: '10:30', title: `Barrio histórico de ${cap}`, desc: 'Primera inmersión cultural.', link: `https://www.google.com/maps/search/?api=1&query=barrio+historico+${destEncoded}` },
-    { type: '🍽️ Comida', time: '13:30', title: `Restaurante local`, desc: `Especialidad gastronómica de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=restaurante+tipico+${destEncoded}` },
-    { type: '🌆 Tarde', time: '16:00', title: `Punto panorámico`, desc: `Las mejores vistas de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=mirador+${destEncoded}` },
-    { type: '🍷 Cena', time: '20:30', title: `Restaurante recomendado`, desc: 'Una noche perfecta.', link: `https://www.google.com/maps/search/?api=1&query=mejor+restaurante+${destEncoded}` },
-    { type: '🍹 Copas', time: '23:00', title: `Bar de moda en ${cap}`, desc: 'Ambiente local.', link: `https://www.google.com/maps/search/?api=1&query=bar+noche+${destEncoded}` },
+  const themes = [
+    { label: 'Llegada e inmersión', emoji: '✈️', slots: [
+      { type: '✈️ Llegada', time: '13:00', title: 'Aeropuerto y traslado', desc: `Aterriza en ${cap}. Coge taxi o shuttle al hotel. Guarda el equipaje y sal a explorar.`, link: `https://www.google.com/maps/search/?api=1&query=aeropuerto+${destEncoded}` },
+      { type: '☕ Café', time: '15:00', title: 'Primera parada local', desc: `Primer café en un bar del barrio. Observa, absorbe y siéntete parte de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=cafe+${destEncoded}` },
+      { type: '🚶 Paseo', time: '16:30', title: 'Barrio histórico a pie', desc: `Paseo sin mapa por el centro. Primer contacto con la arquitectura y el ambiente local.`, link: `https://www.google.com/maps/search/?api=1&query=centro+historico+${destEncoded}` },
+      { type: '🍽️ Cena', time: '20:30', title: 'Restaurante de bienvenida', desc: `Primera cena en ${cap}. Pide la especialidad local, sin pensar mucho. Bienvenida oficial.`, link: `https://www.google.com/maps/search/?api=1&query=restaurante+tipico+${destEncoded}` },
+      { type: '🍹 Copas', time: '23:00', title: 'Bar del barrio', desc: `Una copa para celebrar la llegada. Pregunta al camarero qué bebe la gente de aquí.`, link: `https://www.google.com/maps/search/?api=1&query=bar+local+${destEncoded}` },
+    ]},
+    { label: 'Cultura y monumentos', emoji: '🏛️', slots: [
+      { type: '🥐 Desayuno', time: '08:30', title: 'Desayuno de mercado', desc: `Desayuna en el mercado local. El más auténtico de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=mercado+${destEncoded}` },
+      { type: '🏛️ Visita', time: '10:00', title: 'Monumento principal', desc: `El lugar más emblemático de ${cap}. Llega antes de las 11h para evitar las colas.`, link: `https://www.google.com/maps/search/?api=1&query=monumento+principal+${destEncoded}` },
+      { type: '🍽️ Comida', time: '14:00', title: 'Restaurante histórico', desc: `Restaurante clásico con historia cerca del casco antiguo de ${cap}.`, link: `https://www.google.com/maps/search/?api=1&query=restaurante+historico+${destEncoded}` },
+      { type: '🎨 Tarde', time: '16:00', title: 'Museo o galería', desc: `Elige el museo más representativo de la cultura de ${cap}. Máximo 2h para no saturarte.`, link: `https://www.google.com/maps/search/?api=1&query=museo+${destEncoded}` },
+      { type: '🍷 Cena', time: '20:30', title: 'Taberna con historia', desc: `Cena en un local antiguo con décadas de historia en ${cap}. Sin reserva: llega antes de las 21h.`, link: `https://www.google.com/maps/search/?api=1&query=taberna+tradicional+${destEncoded}` },
+    ]},
+    { label: 'Excursión y naturaleza', emoji: '🚗', slots: [
+      { type: '🥐 Desayuno', time: '08:00', title: 'Desayuno rápido', desc: 'Desayuno en el hotel. Hoy madrugas para aprovechar el día de excursión.', link: `https://www.google.com/maps/search/?api=1&query=desayuno+${destEncoded}` },
+      { type: '🚗 Excursión', time: '09:00', title: `Ruta desde ${cap}`, desc: `Alquila coche o únete a una excursión organizada. El campo/costa cerca de ${cap} es impresionante.`, link: `https://www.google.com/maps/search/?api=1&query=excursion+${destEncoded}` },
+      { type: '📸 Parada', time: '11:00', title: 'Punto panorámico', desc: 'Primera parada con vistas. Aquí es obligatorio salir del coche y hacer fotos.', link: `https://www.google.com/maps/search/?api=1&query=mirador+${destEncoded}` },
+      { type: '🍽️ Comida', time: '13:30', title: 'Restaurante de pueblo', desc: 'Comida en un pueblo cercano. Pedid lo que tienen hoy, no la carta. Así se come bien.', link: `https://www.google.com/maps/search/?api=1&query=restaurante+rural+${destEncoded}` },
+      { type: '🍷 Cena', time: '21:00', title: 'Cena merecida', desc: `Después de la excursión, una buena cena en ${cap}. Pide recomendación al hotel.`, link: `https://www.google.com/maps/search/?api=1&query=cena+${destEncoded}` },
+    ]},
+    { label: 'Despedida', emoji: '🏠', slots: [
+      { type: '🥐 Desayuno', time: '09:00', title: 'Último desayuno', desc: `El último desayuno en ${cap}. Saboréalo. Pide lo que más te haya gustado de la semana.`, link: `https://www.google.com/maps/search/?api=1&query=desayuno+${destEncoded}` },
+      { type: '🚶 Paseo', time: '10:30', title: 'Último paseo', desc: `Recorre los lugares que más te han gustado de ${cap}. La despedida merece un paseo tranquilo.`, link: `https://www.google.com/maps/search/?api=1&query=${destEncoded}` },
+      { type: '🍽️ Comida', time: '13:30', title: 'La cena de despedida', desc: `Cena de despedida de ${cap}. Elige tu restaurante favorito del viaje o uno nuevo.`, link: `https://www.google.com/maps/search/?api=1&query=restaurante+${destEncoded}` },
+      { type: '✈️ Vuelo', time: '17:00', title: 'Traslado al aeropuerto', desc: 'Traslado con tiempo. Los recuerdos van contigo, el equipaje también.', link: `https://www.google.com/maps/search/?api=1&query=aeropuerto+${destEncoded}` },
+    ]},
   ];
 
-  const itinerary = Array.from({ length: Math.min(days, 12) }, (_, i) => ({
-    day: i + 1,
-    place: i === 0 ? `${cap} – Llegada` : `Día ${i + 1} – ${cap}`,
-    emoji: i === 0 ? '✈️' : '🗺️',
-    isSpecial: i === Math.floor(days / 2),
-    slots: baseSlots(i),
-    tip: `Explora ${cap} con calma y sin prisas.`
-  }));
+  const itinerary = Array.from({ length: Math.min(days, 12) }, (_, i) => {
+    let t = themes[1]; // default culture
+    if (i === 0) t = themes[0];
+    else if (i === days - 1 && days > 1) t = themes[3];
+    else if (i % 2 === 0) t = themes[2];
+
+    return {
+      day: i + 1,
+      place: `${cap} – ${t.label}`,
+      emoji: t.emoji,
+      isSpecial: i === Math.floor(days / 2),
+      slots: t.slots,
+      tip: `Explora ${cap} con calma.`
+    };
+  });
 
   return {
     destination: `${days} días en ${cap}`,

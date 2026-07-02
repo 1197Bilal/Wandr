@@ -97,10 +97,14 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           <h3 className="tp-section-title">✈️ Opciones de vuelo</h3>
           <div className="tp-options-grid">
             {currentPlan.flights?.map((f, i) => (
-              <div 
-                key={i} 
-                onClick={() => window.open(f.link, '_blank', 'noopener,noreferrer')} 
+              <a
+                key={i}
+                href={f.link || 'https://www.skyscanner.es'}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="tp-option-card tp-option-card--flight"
+                onClick={e => e.stopPropagation()}
+                style={{ textDecoration: 'none', cursor: 'pointer' }}
               >
                 <div className="tp-option-card__top">
                   <span className="tp-option-card__name">{f.airline}</span>
@@ -108,7 +112,7 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                 </div>
                 <div className="tp-option-card__sub">{f.route} · {f.duration}</div>
                 <span className="tp-option-card__cta">Ver vuelos →</span>
-              </div>
+              </a>
             ))}
           </div>
         </div>
@@ -118,10 +122,14 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
           <h3 className="tp-section-title">🏨 Opciones de alojamiento</h3>
           <div className="tp-options-grid">
             {currentPlan.hotels?.map((h, i) => (
-              <div 
-                key={i} 
-                onClick={() => window.open(h.link, '_blank', 'noopener,noreferrer')} 
+              <a
+                key={i}
+                href={h.link || `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(h.name || currentPlan.destination)}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="tp-option-card tp-option-card--hotel"
+                onClick={e => e.stopPropagation()}
+                style={{ textDecoration: 'none', cursor: 'pointer' }}
               >
                 <div className="tp-option-card__top">
                   <span className="tp-option-card__name">{h.name}</span>
@@ -129,7 +137,7 @@ export default function TripPlan({ plan: initialPlan, onClose }) {
                 </div>
                 <div className="tp-option-card__sub">{h.stars} · {h.vibe}</div>
                 <span className="tp-option-card__cta">Ver en Booking →</span>
-              </div>
+              </a>
             ))}
           </div>
         </div>
