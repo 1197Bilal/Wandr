@@ -103,17 +103,17 @@ PETICIÓN COMPLETA: "${rawInput}"
 MOOD DEL VIAJE: ${mood}
 FECHAS: ${dates.start} hasta ${dates.end} (EXACTAMENTE ${days} días)${extras ? `\nINFO ADICIONAL: ${extras}` : ''}
 
-REGLAS ABSOLUTAS (ninguna es opcional):
-1. El destino es "${destination}". TODO el contenido (vuelos, hoteles, restaurantes, playas, monumentos) debe ser de "${destination}" y sus alrededores. PROHIBIDO mezclar países o continentes.
-2. Genera EXACTAMENTE ${days} días, ni uno más ni uno menos.
-3. Cada día: mínimo 7 slots desde las 08:00 hasta las 23:00+. Cronograma hora a hora.
-4. Nombres REALES y verificables de cada lugar (restaurante, playa, museo, bar). Sin inventar.
-5. Adapta TODO al mood "${mood}": si es chill, planes tranquilos; si es romántico, cenas con vistas.
-6. Si el usuario pide algo especial (cena sorpresa, excursión concreta), ponlo en el día exacto con "isSpecial": true.
-7. "destination" en el JSON = título corto del viaje (máx 5 palabras), no la petición literal.
-8. Links de Google Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+${destEncoded} (reemplaza espacios por +)
-9. Links Booking: https://www.booking.com/searchresults.html?ss=NOMBRE_HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2 (ss = nombre exacto del hotel en el destino real)
-10. Links Skyscanner: https://www.skyscanner.es/vuelos/IATA_ORIGEN/IATA_DESTINO_REAL/ con las siglas IATA reales del aeropuerto de "${destination}"
+REGLAS ABSOLUTAS:
+1. El destino es "${destination}". TODO el contenido debe ser de "${destination}". PROHIBIDO mezclar paises o continentes.
+2. Genera EXACTAMENTE ${days} dias, ni uno mas ni uno menos.
+3. Cada dia debe ser COMPLETAMENTE ÚNICO Y DIFERENTE al resto. PROHIBIDO repetir restaurantes, playas, zonas o actividades. Explora áreas distintas cada día para que el viaje sea realista y variado.
+4. Nombres REALES y verificables de cada lugar. Sin inventar.
+5. Adapta TODO al mood "${mood}".
+6. Si el usuario pide algo especial (cena sorpresa, excursion concreta), ponlo con "isSpecial": true.
+7. "destination" en el JSON = titulo corto del viaje, maximo 5 palabras.
+8. Links Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE+CIUDAD
+9. Links Booking: https://www.booking.com/searchresults.html?ss=NOMBRE_HOTEL&checkin=${dates.start}&checkout=${dates.end}&group_adults=2
+10. Links Skyscanner con IATA reales del aeropuerto de "${destination}": https://www.skyscanner.es/vuelos/mad/IATA_REAL/
 
 Devuelve ÚNICAMENTE JSON válido (sin markdown ni texto extra):
 {
