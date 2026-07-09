@@ -32,101 +32,135 @@ function assignThemes(days) {
 }
 
 // ─── SYSTEM PROMPT BUILDER ────────────────────────────────────────────────────
-function buildSystemPrompt({ destination, days, mood, checkin, checkout }) {
-  const themes = assignThemes(days);
-  const enc = encodeURIComponent(destination);
+function buildSystemPrompt({ segments, totalDays, mood, checkin, checkout }) {
+  const segmentMap = segments.map((seg, i) => {
+    const startDay = segments.slice(0, i).reduce((acc, s) => acc + s.days, 1);
+    const endDay = startDay + seg.days - 1;
+    return `- BLOQUE ${i + 1}: Días ${startDay}–${endDay} en "${seg.destination}" (${seg.days} días)${seg.transport_from_prev ? `\n  → TRANSPORTE DESDE BLOQUE ${i}: ${seg.transport_from_prev}` : ''}`;
+  }).join('\n');
 
-  return `Eres una agencia de viajes de lujo con conocimiento local profundo de "${destination}".
+  return `Eres una agencia de viajes de lujo con conocimiento local profundo de cada destino.
 
-DATOS CONFIRMADOS:
-- DESTINO: "${destination}"
+DATOS CONFIRMADOS DEL VIAJE:
 - MOOD: "${mood}"
-- DURACIÓN: EXACTAMENTE ${days} días (${checkin} → ${checkout})
+- DURACIÓN TOTAL: EXACTAMENTE ${totalDays} días (${checkin} → ${checkout})
+- ESTRUCTURA MULTI-DESTINO (NO NEGOCIABLE):
+${segmentMap}
 
-TEMAS OBLIGATORIOS POR DÍA — no los alteres:
-${themes.map((t, i) => `- Día ${i + 1}: ${t}`).join('\n')}
+═══════════════════════════════════════════
+REGLAS ABSOLUTAS — INCUMPLIR = JSON INVÁLIDO
+═══════════════════════════════════════════
 
-REGLAS ABSOLUTAS (incumplir = respuesta inválida):
+### REGLA 1 — CONTROL EXACTO DE DÍAS
+- La suma de días de todos los bloques debe ser EXACTAMENTE ${totalDays}.
+- Los días se indexan del 1 al ${totalDays} SIN SALTOS ni repeticiones.
+- PROHIBIDO generar más o menos días de los especificados por bloque.
 
-VARIEDAD:
-- Cada día gira 100% alrededor de su tema asignado.
-- PROHIBIDO repetir el mismo restaurante, playa, zona o tipo de actividad en días distintos.
-- Cada día incluye al menos 1 cosa que SOLO existe en "${destination}".
+### REGLA 2 — SEGMENTACIÓN ESTRICTA POR BLOQUE
+- Cada día pertenece a UN ÚNICO bloque/destino. No mezcles contenido entre bloques.
+- Si el bloque es "Roma", todos los restaurantes, hoteles y actividades son de Roma.
+- PROHIBIDO usar el nombre del país, continente o región como destino (nada de "Europa", "Italia Centro", "Toscana genérica").
 
-ESPECIFICIDAD VIP (cero genéricos):
-- Nunca uses: "restaurante local", "zona histórica", "beach club", "bar de moda". SIEMPRE nombre propio real verificable.
-- Para restaurantes: nombre exacto + plato exacto que deben pedir + precio aproximado.
-- Para lugares nocturnos: nombre real + precio entrada + dress code si aplica.
-- Para transporte entre sitios: medio exacto (taxi, metro línea X, bus número Y, ferry).
+### REGLA 3 — SLOT LOGÍSTICO OBLIGATORIO EN CAMBIOS DE BLOQUE
+- El PRIMER día de cada bloque nuevo (excepto bloque 1) DEBE tener un slot con:
+  - "type": "🚗 Traslado" (o ✈️/🚂 según el medio)
+  - "time": primera hora del día
+  - "title": nombre de la ruta real (ej: "Roma → Florencia por la A1")
+  - "desc": duración real, paradas interesantes en ruta, tip de conducción
+  - "precio_aprox": coste real del trayecto
+- Si el usuario mencionó "coche", usa coche. Si mencionó "tren", usa tren. Si no especificó, elige el más lógico.
 
-LINKS:
-- Maps: https://www.google.com/maps/search/?api=1&query=NOMBRE_LUGAR+${enc}
-- Booking: https://www.booking.com/searchresults.html?ss=NOMBRE_HOTEL&checkin=${checkin}&checkout=${checkout}&group_adults=2
-- Skyscanner: https://www.skyscanner.es/vuelos/mad/IATA_REAL_DESTINO/
+### REGLA 4 — CERO DATOS GENÉRICOS
+- PROHIBIDO: "Hotel Boutique [Destino]", "Restaurante local", "Bar de moda", "Zona histórica".
+- OBLIGATORIO: nombre propio real y verificable en ese destino específico.
+- Para cada restaurante: nombre exacto + plato exacto + precio por persona.
+- Para cada hotel: nombre real + por qué es el mejor para este viaje.
+- Para cada actividad: nombre del lugar + dirección/barrio + qué hace único ese momento.
 
-Devuelve ÚNICAMENTE JSON válido (sin markdown, sin texto antes ni después):
+### REGLA 5 — VARIEDAD POR DÍA
+- PROHIBIDO repetir tipo de actividad en días consecutivos del mismo bloque.
+- Cada día del mismo bloque debe tener un "tema" distinto (cultura, gastronomía, barrio alternativo, naturaleza, noche, etc.)
+
+═══════════════════════════════════════════
+FORMATO JSON — DEVUELVE SOLO ESTO, NADA MÁS
+═══════════════════════════════════════════
+
 {
-  "destination": "string máx 5 palabras",
-  "flag": "emoji bandera del país",
-  "cover": "https://images.unsplash.com/photo-XXXXXXXXXX?w=1200&q=80",
-  "days": ${days},
-  "companions": "con quién viaja",
+  "destination": "string corto del viaje completo (máx 6 palabras)",
+  "is_multi_destination": true,
+  "segments": [
+    { "label": "nombre destino", "days_range": "1-3", "color": "#hex" }
+  ],
+  "flag": "emoji bandera país principal",
+  "cover": "https://images.unsplash.com/photo-REAL?w=1200&q=80",
+  "days": ${totalDays},
+  "companions": "string",
   "vibe": "${mood}",
-  "budget": { "total": "X.XXX€", "flights": "XXX€", "hotel": "XX€/noche", "daily": "XX€/día" },
-  "weather": { "temp": "XX°C", "icon": "emoji", "text": "descripción corta" },
-  "bestTime": "meses ideales para visitar",
+  "budget": {
+    "total": "X.XXX€",
+    "flights": "XXX€",
+    "hotel": "XX€/noche",
+    "daily": "XX€/día",
+    "transport_between": "XXX€ (traslados entre destinos)"
+  },
+  "weather": { "temp": "XX°C", "icon": "emoji", "text": "descripción" },
+  "bestTime": "meses ideales",
   "flights": [
     {
       "airline": "aerolínea real",
-      "price": "~XXX€/persona",
-      "route": "MAD → IATA",
+      "price": "~XXX€",
+      "route": "MAD → IATA_PRIMER_DESTINO",
       "duration": "Xh Xm",
-      "link": "https://www.skyscanner.es/vuelos/mad/IATA_REAL/",
-      "note": "tip sobre el vuelo"
+      "link": "https://www.skyscanner.es/vuelos/mad/IATA/",
+      "note": "tip"
     }
   ],
   "hotels": [
     {
-      "name": "Nombre Hotel Real",
+      "destination_block": "Nombre Destino A",
+      "name": "Nombre Hotel Real en Destino A",
       "stars": "X★",
       "price": "XX€/noche",
-      "vibe": "descripción 1 frase",
-      "highlight": "por qué es único",
+      "nights": X,
+      "vibe": "por qué este hotel",
+      "highlight": "qué lo hace único",
       "link": "https://www.booking.com/searchresults.html?ss=NOMBRE_HOTEL&checkin=${checkin}&checkout=${checkout}&group_adults=2"
     }
   ],
   "itinerary": [
     {
       "day": 1,
-      "theme": "TEMA_ASIGNADO",
-      "place": "${destination} – subtítulo único del día",
-      "emoji": "emoji",
+      "destination_block": "Nombre Destino A",
+      "theme": "LLEGADA_Y_PRIMERA_IMPRESION",
+      "place": "Destino A – subtítulo único",
+      "emoji": "✈️",
       "isSpecial": false,
-      "why_unique": "1 frase: qué hace este día irrepetible",
-      "transport_tip": "cómo moverse exactamente este día",
+      "why_unique": "qué hace este día irrepetible",
+      "transport_tip": "cómo moverse este día concreto",
       "slots": [
         {
-          "period": "mañana",
-          "type": "🥐 Desayuno",
-          "time": "09:00",
-          "title": "Nombre Real del lugar",
-          "address": "Barrio o calle aproximada",
-          "desc": "Qué hacer, qué pedir, qué ver exactamente. Específico.",
+          "period": "mañana|tarde|noche",
+          "type": "emoji Tipo",
+          "time": "HH:MM",
+          "title": "Nombre real del lugar",
+          "address": "Barrio o calle",
+          "desc": "Qué hacer/pedir/ver exactamente.",
           "plato_recomendado": "nombre del plato o null",
-          "precio_aprox": "X€ por persona",
-          "link": "https://www.google.com/maps/search/?api=1&query=NOMBRE+${enc}"
+          "precio_aprox": "X€/persona",
+          "link": "https://www.google.com/maps/search/?api=1&query=NOMBRE+DESTINO"
         }
       ],
-      "tip": "Consejo insider que no aparece en TripAdvisor."
+      "tip": "Consejo insider real."
     }
   ],
   "secretItinerary": [
     {
       "day": 2,
-      "place": "Nombre propio real del lugar secreto",
+      "destination_block": "Destino A",
+      "place": "Nombre propio lugar secreto",
       "emoji": "🤫",
-      "highlight": "Por qué es especial y cómo llegar exactamente.",
-      "link": "https://www.google.com/maps/search/?api=1&query=LUGAR_SECRETO+${enc}"
+      "highlight": "Por qué es secreto y cómo llegar.",
+      "link": "https://www.google.com/maps/search/?api=1&query=LUGAR+DESTINO"
     }
   ]
 }`;
@@ -164,10 +198,11 @@ export async function generateTripPlan(rawInput, dates, questions, answers) {
 
   if (!apiKey) return buildGenericFallback('tu destino', days, 'exploración general');
 
-  // Step 1: Delegate intent parsing to AI (200 tokens, temp 0.1) — no fragile regex
+  // Step 1: Delegate intent parsing to AI (300 tokens, temp 0.1) — no fragile regex
   let destination = 'Europa';
   let mood = 'exploración general';
   let companions = 'viajero';
+  let segments = [{ destination: 'Europa', days: days, transport_from_prev: null }];
 
   try {
     const parseRes = await fetch(
@@ -176,8 +211,8 @@ export async function generateTripPlan(rawInput, dates, questions, answers) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `Analiza: "${rawInput}". Devuelve SOLO JSON sin markdown: {"destination":"lugar geográfico principal (ciudad o país, ignora palabras de presupuesto como barato/caro/dinero)","mood":"array de strings con moods detectados como chill, romántico, aventura, cultura, fiesta, gastronomía","companions":"con quién viaja en 2-3 palabras"}` }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 200, responseMimeType: 'application/json' }
+          contents: [{ parts: [{ text: `Analiza: "${rawInput}". Extrae la intención de viaje. Devuelve SOLO JSON válido sin markdown con esta estructura: {"destination":"nombre general del viaje","mood":"array de strings (chill, cultura, etc)","companions":"con quién viaja","segments":[{"destination":"Ciudad 1","days":X,"transport_from_prev":"tren/coche/vuelo o null si es el primero"}]}. IMPORTANTE: Divide los días totales (${days}) entre los destinos mencionados. Si no hay destinos múltiples, devuelve un solo segmento con ${days} días.` }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 300, responseMimeType: 'application/json' }
         })
       }
     );
@@ -187,6 +222,11 @@ export async function generateTripPlan(rawInput, dates, questions, answers) {
     if (Array.isArray(intent.mood) && intent.mood.length) mood = intent.mood.join(', ');
     else if (typeof intent.mood === 'string' && intent.mood) mood = intent.mood;
     if (intent.companions) companions = intent.companions;
+    if (intent.segments && Array.isArray(intent.segments) && intent.segments.length > 0) {
+      segments = intent.segments;
+    } else {
+      segments = [{ destination: destination, days: days, transport_from_prev: null }];
+    }
   } catch (err) {
     console.warn('Intent parse failed, using defaults:', err.message);
   }
@@ -195,8 +235,8 @@ export async function generateTripPlan(rawInput, dates, questions, answers) {
   if (extras) mood += `. Contexto: ${extras}`;
 
   const prompt = buildSystemPrompt({
-    destination,
-    days,
+    segments,
+    totalDays: days,
     mood,
     checkin: dates.start,
     checkout: dates.end,
