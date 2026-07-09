@@ -216,6 +216,7 @@ export async function generateTripPlan(rawInput, dates, questions, answers) {
         })
       }
     );
+    const parseData = await parseRes.json();
     let text = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
