@@ -216,8 +216,12 @@ export async function generateTripPlan(rawInput, dates, questions, answers) {
         })
       }
     );
-    const parseData = await parseRes.json();
-    const intent = JSON.parse(parseData.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+    let text = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1) text = text.substring(start, end + 1);
+    
+    const intent = JSON.parse(text);
     if (intent.destination) destination = intent.destination;
     if (Array.isArray(intent.mood) && intent.mood.length) mood = intent.mood.join(', ');
     else if (typeof intent.mood === 'string' && intent.mood) mood = intent.mood;
